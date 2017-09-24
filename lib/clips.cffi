@@ -1,0 +1,282 @@
+typedef struct dataObject
+  {
+      ...;
+  } DATA_OBJECT;
+
+extern "Python" void python_function(void *, DATA_OBJECT *);
+
+/* Extra */
+int define_function(void *);
+int implied_deftemplate(struct deftemplate *);
+
+/* Data Object */
+short get_data_type(DATA_OBJECT *);
+short set_data_type(DATA_OBJECT *, short);
+void *get_data_value(DATA_OBJECT *);
+void *set_data_value(DATA_OBJECT *, void *);
+long get_data_begin(DATA_OBJECT *);
+long set_data_begin(DATA_OBJECT *, long);
+long get_data_end(DATA_OBJECT *);
+long set_data_end(DATA_OBJECT *, long);
+long get_data_length(DATA_OBJECT *);
+void *EnvAddDouble(void *, double);
+void *EnvAddLong(void *, long long);
+void *EnvAddSymbol(void *, const char *);
+void *EnvAddExternalAddress(void *, void *, unsigned);
+int EnvRtnArgCount(void *);
+int EnvArgTypeCheck(void *, const char *, int, int, void *);
+DATA_OBJECT *EnvRtnUnknown(void *, int, DATA_OBJECT *);
+
+/* Multifield */
+void *EnvCreateMultifield(void *, long);
+short get_multifield_type(struct multifield *, long);
+short set_multifield_type(struct multifield *, long, short);
+void *get_multifield_value(struct multifield *, long);
+void *set_multifield_value(struct multifield *, long, void *);
+long get_multifield_length(struct multifield *);
+
+/* Hash Node */
+char *to_string(struct symbolHashNode *);
+double to_double(struct floatHashNode *);
+long long to_integer(struct integerHashNode *);
+void *to_pointer(void *);
+void *to_external_address(struct externalAddressHashNode *);
+
+/* Environment */
+void *CreateEnvironment(void);
+int DestroyEnvironment(void *);
+int EnvLoad(void *, const char *);
+int EnvBload(void *, const char *);
+int EnvSave(void *, const char *);
+int EnvBsave(void *, const char *);
+int EnvEval(void *, const char *, DATA_OBJECT *);
+int EnvBuild(void *, const char *);
+void EnvIncrementGCLocks(void *);
+void EnvDecrementGCLocks(void *);
+void EnvReset(void *);
+void EnvClear(void *);
+
+/* Router */
+void *GetEnvironmentRouterContext(void *);
+int EnvAddRouterWithContext(void *, const char *, int,
+                            int (*query)(void *, const char *),
+                            int (*print)(void *, const char *, const char *),
+                            int (*getc)(void *, const char *),
+                            int (*ungetc)(void *, int, const char *),
+                            int (*exit)(void *, int),
+                            void *);
+int EnvActivateRouter(void *, const char *);
+int EnvDeactivateRouter(void *, const char *);
+int EnvDeleteRouter(void *, const char *);
+int EnvPrintRouter(void *, const char *, const char *);
+extern "Python" int query_function(void *, const char *);
+extern "Python" int print_function(void *, const char *, const char *);
+extern "Python" int getc_function(void *, const char *);
+extern "Python" int ungetc_function(void *, int, const char *);
+extern "Python" int exit_function(void *, int);
+
+/* Fact */
+void *EnvAssert(void *, void *);
+int EnvRetract(void *, void *);
+void *EnvAssertString(void *, const char *);
+struct fact *EnvCreateFact(void *, void *);
+void EnvIncrementFactCount(void *, void *);
+void EnvDecrementFactCount(void *, void *);
+void EnvFactSlotNames(void *, void *, DATA_OBJECT *);
+int EnvSaveFacts(void *, void *, int);
+int EnvLoadFacts(void *, const char *);
+int EnvLoadFactsFromString(void *, const char *, long);
+void *EnvGetNextFact(void *,void *);
+long long EnvFactIndex(void *, void *);
+int EnvGetFactSlot(void *, void *, const char *, DATA_OBJECT *);
+int EnvPutFactSlot(void *, void *, const char *, DATA_OBJECT *);
+void EnvAssignFactSlotDefaults(void *, void *);
+int EnvFactExistp(void *, void *);
+void EnvGetFactPPForm(void *, char *, size_t, void *);
+
+/* Deftemplate */
+void *EnvFactDeftemplate(void *, void *);
+void *EnvGetNextDeftemplate(void *, void *);
+const char *EnvGetDeftemplateName(void *, void *);
+void EnvDeftemplateSlotTypes(void *, void *, const char *, DATA_OBJECT *);
+void EnvDeftemplateSlotNames(void *, void *, DATA_OBJECT *);
+void EnvDeftemplateSlotAllowedValues(void *, void *, const char *, DATA_OBJECT *);
+int EnvUndeftemplate(void *, void *);
+int EnvIsDeftemplateDeletable(void *, void *);
+void *EnvFindDeftemplate(void *, const char *);
+const char *EnvGetDeftemplatePPForm(void *, void *);
+const char *EnvDeftemplateModule(void *, void *);
+unsigned EnvGetDeftemplateWatch(void *, void *);
+void EnvSetDeftemplateWatch(void *, unsigned, void *);
+int EnvDeftemplateSlotMultiP(void *, void *, const char *);
+void EnvDeftemplateSlotRange(void *, void *, const char *, DATA_OBJECT *);
+int EnvDeftemplateSlotDefaultP(void *, void *, const char *);
+void EnvDeftemplateSlotCardinality(void *, void *, const char *, DATA_OBJECT *);
+void EnvDeftemplateSlotDefaultValue(void *, void *, const char *, DATA_OBJECT *);
+
+/* Rule */
+int EnvRefresh(void *, void *);
+int EnvUndefrule(void *, void *);
+void EnvSetBreak(void *, void *);
+int EnvRemoveBreak(void *, void *);
+void *EnvFindDefrule(void *, void *);
+void *EnvGetNextDefrule(void *, void *);
+int EnvIsDefruleDeletable(void *, void *);
+const char *EnvDefruleModule(void *, void *);
+const char *EnvGetDefruleName(void *, void *);
+const char *EnvGetDefrulePPForm(void *, void *);
+void EnvMatches(void *, void *, int, DATA_OBJECT *);
+unsigned EnvGetDefruleWatchFirings(void *, void *);
+void EnvSetDefruleWatchFirings(void *, unsigned, void *);
+unsigned EnvGetDefruleWatchActivations(void *, void *);
+void EnvSetDefruleWatchActivations(void *, unsigned, void *);
+
+/* Agenda */
+void *EnvGetFocus(void *);
+void EnvFocus(void *, void *);
+int EnvGetStrategy(void *);
+int EnvSetStrategy(void *, int);
+void EnvClearFocusStack(void *);
+int EnvGetAgendaChanged(void *);
+void EnvSetAgendaChanged(void *, int);
+long long EnvRun(void *, long long);
+void EnvReorderAgenda(void *, void *);
+int EnvDeleteActivation(void *, void *);
+int EnvGetSalienceEvaluation(void *);
+void EnvRefreshAgenda(void *, void *);
+int EnvSetSalienceEvaluation(void *, int);
+void *EnvGetNextActivation(void *, void *);
+int EnvGetActivationSalience(void *, void *);
+const char *EnvGetActivationName(void *, void *);
+int EnvSetActivationSalience(void *, void *, int);
+void EnvGetActivationPPForm(void *, char *, size_t, void *);
+
+/* Globals */
+int EnvUndefglobal(void *, void *);
+int EnvGetGlobalsChanged(void *);
+void EnvSetGlobalsChanged(void *, int);
+void *EnvFindDefglobal(void *, void *);
+void *EnvGetNextDefglobal(void *, void *);
+int EnvIsDefglobalDeletable(void *, void *);
+const char *EnvDefglobalModule(void *, void *);
+const char *EnvGetDefglobalName(void *, void *);
+const char *EnvGetDefglobalPPForm(void *, void *);
+unsigned EnvGetDefglobalWatch(void *, void *);
+void EnvSetDefglobalWatch(void *, unsigned, void *);
+int EnvGetDefglobalValue(void *, const char *, DATA_OBJECT *);
+int EnvSetDefglobalValue(void *, const char *, DATA_OBJECT *);
+
+/* Functions */
+int EnvUndeffunction(void *, void *);
+void *EnvFindDeffunction(void *, void *);
+void *EnvGetNextDeffunction(void *, void *);
+int EnvIsDeffunctionDeletable(void *, void *);
+unsigned EnvGetDeffunctionWatch(void *, void *);
+void EnvSetDeffunctionWatch(void *, unsigned, void *);
+const char *EnvDeffunctionModule(void *, void *);
+const char *EnvGetDeffunctionName(void *, void *);
+const char *EnvGetDeffunctionPPForm(void *, void *);
+int EnvFunctionCall(void *, const char *, const char *, DATA_OBJECT *);
+
+/* Generics */
+int EnvUndefgeneric(void *, void *);
+void *EnvFindDefgeneric(void *, void *);
+void *EnvGetNextDefgeneric(void *, void *);
+int EnvIsDefgenericDeletable(void *, void *);
+unsigned EnvGetDefgenericWatch(void *, void *);
+void EnvSetDefgenericWatch(void *, unsigned, void *);
+const char *EnvDefgenericModule(void *, void *);
+const char *EnvGetDefgenericName(void *, void *);
+const char *EnvGetDefgenericPPForm(void *, void *);
+
+/* Methods */
+int EnvUndefmethod(void *, void *, long);
+long EnvGetNextDefmethod(void *, void *, long);
+int EnvIsDefmethodDeletable(void *, void *, long);
+unsigned EnvGetDefmethodWatch(void *, void *, long);
+const char *EnvGetDefmethodPPForm(void *, void *, long);
+void EnvSetDefmethodWatch(void *, unsigned, void *, long);
+void EnvGetMethodRestrictions(void *, void *, long, DATA_OBJECT *);
+void EnvGetDefmethodDescription(void *, char *, size_t, void *, long);
+
+/* Classes */
+int EnvUndefclass(void *, void *);
+int EnvClassAbstractP(void *, void *);
+int EnvClassReactiveP(void *, void *);
+void *EnvFindDefclass(void *, void *);
+int EnvSubclassP(void *, void *, void *);
+int EnvSuperclassP(void *, void *, void *);
+const char *EnvDefclassModule(void *, void *);
+const char *EnvGetDefclassName(void *, void *);
+const char *EnvGetDefclassPPForm(void *, void *);
+unsigned EnvGetDefclassWatchInstances(void *, void *);
+void EnvSetDefclassWatchInstances(void *, unsigned, void *);
+unsigned EnvGetDefclassWatchSlots(void *, void *);
+void EnvSetDefclassWatchSlots(void *, unsigned, void *);
+void *EnvGetNextDefclass(void *, void *);
+int EnvIsDefclassDeletable(void *, void *);
+unsigned short EnvGetClassDefaultsMode(void *);
+unsigned short EnvSetClassDefaultsMode(void *, unsigned short);
+void EnvClassSlots(void *, void *, DATA_OBJECT *, int);
+void EnvClassSubclasses(void *, void *, DATA_OBJECT *, int);
+void EnvClassSuperclasses(void *, void *, DATA_OBJECT *, int);
+
+/* Slots */
+int EnvSlotPublicP(void *, void *, const char *);
+int EnvSlotInitableP(void *, void *, const char *);
+int EnvSlotWritableP(void *, void *, const char *);
+int EnvSlotExistP(void *, void *, const char *, int);
+int EnvSlotDirectAccessP(void *, void *, const char *);
+void EnvSlotTypes(void *, void *, const char *, DATA_OBJECT *);
+void EnvSlotRange(void *, void *, const char *, DATA_OBJECT *);
+void EnvSlotFacets(void *, void *, const char *, DATA_OBJECT *);
+void EnvSlotSources(void *, void *, const char *, DATA_OBJECT *);
+void EnvSlotCardinality(void *, void *, const char *, DATA_OBJECT *);
+void EnvSlotDefaultValue(void *, void *, const char *, DATA_OBJECT *);
+void EnvSlotAllowedValues(void *, void *, const char *, DATA_OBJECT *);
+void EnvSlotAllowedClasses(void *, void *, const char *, DATA_OBJECT *);
+
+/* Instances */
+int EnvGetInstancesChanged(void *);
+void EnvSetInstancesChanged(void *, int);
+int EnvDeleteInstance(void *, void *);
+int EnvUnmakeInstance(void *, void *);
+void *EnvMakeInstance(void *, const char *);
+void *EnvGetNextInstance(void *, void *);
+void *EnvGetInstanceClass(void *, void *);
+const char *EnvGetInstanceName(void *, void *);
+void EnvDecrementInstanceCount(void *, void *);
+void EnvIncrementInstanceCount(void *, void *);
+long EnvLoadInstances(void *, const char *);
+long EnvBinaryLoadInstances(void *, const char *);
+long EnvLoadInstancesFromString(void *, const char *, int);
+long EnvRestoreInstances(void *, const char *);
+long EnvRestoreInstancesFromString(void *, const char *, int);
+long EnvSaveInstances(void *, const char *, int);
+long EnvBinarySaveInstances(void *, const char *, int);
+void *EnvGetNextInstanceInClass(void *, void *, void *);
+void *EnvCreateRawInstance(void *, void *, const char *);
+void EnvGetInstancePPForm(void *, char *, size_t, void *);
+void *EnvFindInstance(void *, void *, const char *, unsigned);
+int EnvDirectPutSlot(void *, void *, const char *, DATA_OBJECT *);
+void EnvDirectGetSlot(void *, void *, const char *, DATA_OBJECT *);
+void EnvSend(void *, DATA_OBJECT *, const char *, const char *, DATA_OBJECT *);
+
+/* Message Handlers */
+int EnvUndefmessageHandler(void *, void *, int);
+int EnvIsDefmessageHandlerDeletable(void *, void *, int);
+unsigned EnvGetNextDefmessageHandler(void *, void *, int);
+unsigned EnvGetDefmessageHandlerWatch(void *, void *, int);
+void EnvSetDefmessageHandlerWatch(void *, int, void *, int);
+const char *EnvGetDefmessageHandlerName(void *, void *, int);
+const char *EnvGetDefmessageHandlerType(void *, void *, int);
+const char *EnvGetDefmessageHandlerPPForm(void *, void *, int);
+unsigned EnvFindDefmessageHandler(void *, void *, const char *, const char *);
+
+/* Modules */
+void *EnvGetCurrentModule(void *);
+void *EnvSetCurrentModule(void *, void *);
+void *EnvGetNextDefmodule(void *, void *);
+void *EnvFindDefmodule(void *, const char *);
+const char *EnvGetDefmoduleName(void *, void *);
+const char *EnvGetDefmodulePPForm(void *, void *);

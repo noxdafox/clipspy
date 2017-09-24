@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+clips/*.c
+*.so
+*.o
+GPATH
+GRTAGS
+GTAGS
+.coverage
+.cache
