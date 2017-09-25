@@ -23,7 +23,12 @@ class TestFunctions(unittest.TestCase):
 
     def test_function_call(self):
         """Test function call."""
-        self.assertEqual(self.env.functions.call('function-sum', '1 2'), 3)
+        function = self.env.functions.find_function('function-sum')
+        self.assertEqual(function('1 2'), 3)
+
+        function = self.env.functions.find_generic('generic-sum')
+        self.assertEqual(function('1 2'), 3)
+
 
     def test_function(self):
         """Deffunction object test."""

@@ -21,22 +21,6 @@ class Functions:
     def __init__(self, env):
         self._env = env
 
-    def call(self, function, arguments=None):
-        """Call a CLIPS function, deffunction or generic function.
-
-        Function arguments must be provided as a string.
-
-        """
-        data = DataObject(self._env)
-
-        args = arguments.encode() if arguments is not None else ffi.NULL
-
-        if lib.EnvFunctionCall(
-                self._env, function.encode(), args, data.byref) == 1:
-            raise CLIPSError(self._env)
-
-        return data.value
-
     def functions(self):
         """Iterates over the defined Globals."""
         deffunction = lib.EnvGetNextDeffunction(self._env, ffi.NULL)
@@ -97,6 +81,21 @@ class Function:
 
         return "%s: %s" % (self.__class__.__name__,
                            string.decode().rstrip('\n'))
+
+    def __call__(self, arguments=''):
+        """Call the CLIPS function.
+
+        Function arguments must be provided as a string.
+
+        """
+        data = DataObject(self._env)
+        name = ffi.string(lib.EnvGetDeffunctionName(self._env, self._fnc))
+        args = arguments.encode() if arguments != '' else ffi.NULL
+
+        if lib.EnvFunctionCall(self._env, name, args, data.byref) == 1:
+            raise CLIPSError(self._env)
+
+        return data.value
 
     @property
     def name(self):
@@ -168,6 +167,21 @@ class Generic:
 
         return "%s: %s" % (self.__class__.__name__,
                            string.decode().rstrip('\n'))
+
+    def __call__(self, arguments=''):
+        """Call the CLIPS generic function.
+
+        Function arguments must be provided as a string.
+
+        """
+        data = DataObject(self._env)
+        name = ffi.string(lib.EnvGetDefgenericName(self._env, self._gnc))
+        args = arguments.encode() if arguments != '' else ffi.NULL
+
+        if lib.EnvFunctionCall(self._env, name, args, data.byref) == 1:
+            raise CLIPSError(self._env)
+
+        return data.value
 
     @property
     def name(self):
