@@ -1,32 +1,10 @@
-from enum import IntEnum
+import clips
 
 from clips.modules import Module
 from clips.error import CLIPSError
-from clips.common import DataObject
+from clips.common import Strategy, SalienceEvaluation, Verbosity
 
 from clips._clips import lib, ffi
-
-
-class Strategy(IntEnum):
-    DEPTH = 0
-    BREADTH = 1
-    LEX = 2
-    MEA = 3
-    COMPLEXITY = 4
-    SIMPLICITY = 5
-    RANDOM = 6
-
-
-class SalienceEvaluation(IntEnum):
-    WHEN_DEFINED = 0
-    WHEN_ACTIVATED = 1
-    EVERY_CYCLE = 2
-
-
-class Verbosity(IntEnum):
-    VERBOSE = 0
-    SUCCINT = 1
-    TERSE = 2
 
 
 class Agenda:
@@ -249,7 +227,7 @@ class Rule:
           * Verbosity.TERSE: (default) nothing is printed to stdout
 
         """
-        data = DataObject(self._env)
+        data = clips.data.DataObject(self._env)
 
         lib.EnvMatches(self._env, self._rule, verbosity, data.byref)
 

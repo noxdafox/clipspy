@@ -1,10 +1,12 @@
+import clips
+
 from clips.facts import Facts
 from clips.agenda import Agenda
 from clips.classes import Classes
 from clips.modules import Modules
 from clips.functions import Functions
 from clips.error import CLIPSError, ErrorRouter
-from clips.common import DataObject, EnvData, ENVIRONMENT_DATA
+from clips.common import CLIPSType, EnvData, ENVIRONMENT_DATA
 
 from clips._clips import lib, ffi
 
@@ -32,8 +34,8 @@ class Environment(object):
         try:
             lib.DestroyEnvironment(self._env)
             del ENVIRONMENT_DATA[self._env]
-        except (AttributeError, KeyError):
-            pass
+        except (AttributeError, KeyError, TypeError):
+            pass  # mostly happening during interpreter shutdown
 
     @property
     def facts(self):
@@ -122,7 +124,7 @@ class Environment(object):
         The Python equivalent of the CLIPS eval command.
 
         """
-        data = DataObject(self._env)
+        data = clips.data.DataObject(self._env)
 
         if lib.EnvEval(self._env, construct.encode(), data.byref) != 1:
             raise CLIPSError(self._env)
@@ -155,3 +157,28 @@ class Environment(object):
 
         """
         ENVIRONMENT_DATA[self._env].user_functions[function.__name__] = function
+
+
+@ffi.def_extern()
+def python_function(env, data_object):
+    arguments = []
+    temp = clips.data.DataObject(env)
+    data = clips.data.DataObject(env, data=data_object)
+    argnum = lib.EnvRtnArgCount(env)
+
+    if lib.EnvArgTypeCheck(
+            env, b'python-function', 1, CLIPSType.SYMBOL, temp.byref) != 1:
+        raise RuntimeError()
+
+    funcname = temp.value
+
+    for index in range(2, argnum + 1):
+        lib.EnvRtnUnknown(env, index, temp.byref)
+        arguments.append(temp.value)
+
+    try:
+        ret = ENVIRONMENT_DATA[env].user_functions[funcname](*arguments)
+    except Exception as error:
+        ret = str("%s: %s" % (error.__class__.__name__, error))
+
+    data.value = ret if ret is not None else clips.common.Symbol('nil')

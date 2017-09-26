@@ -1,5 +1,6 @@
+import clips
+
 from clips.error import CLIPSError
-from clips.common import DataObject
 
 from clips._clips import lib, ffi
 
@@ -103,7 +104,7 @@ class Global:
     @property
     def value(self):
         """Global value."""
-        data = DataObject(self._env)
+        data = clips.data.DataObject(self._env)
 
         if lib.EnvGetDefglobalValue(
                 self._env, self.name.encode(), data.byref) != 1:
@@ -114,7 +115,7 @@ class Global:
     @value.setter
     def value(self, value):
         """Global value."""
-        data = DataObject(self._env)
+        data = clips.data.DataObject(self._env)
         data.value = value
 
         if lib.EnvSetDefglobalValue(

@@ -1,9 +1,10 @@
 import os
-from enum import IntEnum
+
+import clips
 
 from clips.modules import Module
 from clips.error import CLIPSError
-from clips.common import DataObject, SaveMode
+from clips.common import SaveMode, TemplateSlotDefaultType
 
 from clips._clips import lib, ffi
 
@@ -96,8 +97,8 @@ class Fact:
     def __del__(self):
         try:
             lib.EnvDecrementFactCount(self._env, self._fact)
-        except AttributeError:
-            pass
+        except (AttributeError, TypeError):
+            pass  # mostly happening during interpreter shutdown
 
     def __hash__(self):
         return hash(self._fact)
@@ -177,7 +178,7 @@ class ImpliedFact(Fact):
 
     def assertit(self):
         """Assert the fact within CLIPS."""
-        data = DataObject(self._env)
+        data = clips.data.DataObject(self._env)
         data.value = list(self._multifield)
 
         if lib.EnvPutFactSlot(
@@ -208,7 +209,7 @@ class TemplateFact(Fact):
             "'%s' fact has not slot '%s'" % (self.template.name, key))
 
     def __setitem__(self, key, value):
-        data = DataObject(self._env)
+        data = clips.data.DataObject(self._env)
         data.value = value
 
         ret = lib.EnvPutFactSlot(
@@ -308,7 +309,7 @@ class Template:
         if self.implied:
             return ()
 
-        data = DataObject(self._env)
+        data = clips.data.DataObject(self._env)
 
         lib.EnvDeftemplateSlotNames(self._env, self._tpl, data.byref)
 
@@ -373,7 +374,7 @@ class TemplateSlot:
         The Python equivalent of the CLIPS deftemplate-slot-types function.
 
         """
-        data = DataObject(self._env)
+        data = clips.data.DataObject(self._env)
 
         lib.EnvDeftemplateSlotTypes(
             self._env, self._tpl, self._name, data.byref)
@@ -387,7 +388,7 @@ class TemplateSlot:
         The Python equivalent of the CLIPS deftemplate-slot-range function.
 
         """
-        data = DataObject(self._env)
+        data = clips.data.DataObject(self._env)
 
         lib.EnvDeftemplateSlotRange(
             self._env, self._tpl, self._name, data.byref)
@@ -402,7 +403,7 @@ class TemplateSlot:
         of the CLIPS deftemplate-slot-cardinality function.
 
         """
-        data = DataObject(self._env)
+        data = clips.data.DataObject(self._env)
 
         lib.EnvDeftemplateSlotCardinality(
             self._env, self._tpl, self._name, data.byref)
@@ -427,7 +428,7 @@ class TemplateSlot:
         of the CLIPS deftemplate-slot-default-value function.
 
         """
-        data = DataObject(self._env)
+        data = clips.data.DataObject(self._env)
 
         lib.EnvDeftemplateSlotDefaultValue(
             self._env, self._tpl, self._name, data.byref)
@@ -441,18 +442,12 @@ class TemplateSlot:
         The Python equivalent of the CLIPS slot-allowed-values function.
 
         """
-        data = DataObject(self._env)
+        data = clips.data.DataObject(self._env)
 
         lib.EnvDeftemplateSlotAllowedValues(
             self._env, self._tpl, self._name, data.byref)
 
         return tuple(data.value) if isinstance(data.value, list) else ()
-
-
-class TemplateSlotDefaultType(IntEnum):
-    NO_DEFAULT = 0
-    STATIC_DEFAULT = 1
-    DYNAMIC_DEFAULT = 2
 
 
 def new_fact(env, fact):
@@ -463,7 +458,7 @@ def new_fact(env, fact):
 
 
 def slot_value(env, fact, slot):
-    data = DataObject(env)
+    data = clips.data.DataObject(env)
     slot = slot if slot is not None else ffi.NULL
     implied = lib.implied_deftemplate(lib.EnvFactDeftemplate(env, fact))
 
@@ -475,7 +470,7 @@ def slot_value(env, fact, slot):
 
 
 def slot_values(env, fact, tpl):
-    data = DataObject(env)
+    data = clips.data.DataObject(env)
     lib.EnvDeftemplateSlotNames(env, tpl, data.byref)
 
     return ((s, slot_value(env, fact, s.encode())) for s in data.value)

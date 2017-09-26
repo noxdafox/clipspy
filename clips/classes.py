@@ -1,9 +1,10 @@
 import os
-from enum import IntEnum
+
+import clips
 
 from clips.modules import Module
 from clips.error import CLIPSError
-from clips.common import DataObject, CLIPSType, SaveMode
+from clips.common import SaveMode, ClassDefaultMode, CLIPSType
 
 from clips._clips import lib, ffi
 
@@ -244,7 +245,7 @@ class Class:
 
     def slots(self, inherited=False):
         """Iterate over the Slots of the class."""
-        data = DataObject(self._env)
+        data = clips.data.DataObject(self._env)
 
         lib.EnvClassSlots(self._env, self._cls, data.byref, int(inherited))
 
@@ -266,7 +267,7 @@ class Class:
         of the CLIPS class-subclasses command.
 
         """
-        data = DataObject(self._env)
+        data = clips.data.DataObject(self._env)
 
         lib.EnvClassSubclasses(self._env, self._cls, data.byref, int(inherited))
 
@@ -279,7 +280,7 @@ class Class:
         of the CLIPS class-superclasses command.
 
         """
-        data = DataObject(self._env)
+        data = clips.data.DataObject(self._env)
 
         lib.EnvClassSuperclasses(
             self._env, self._cls, data.byref, int(inherited))
@@ -361,7 +362,7 @@ class ClassSlot:
         The Python equivalent of the CLIPS slot-types function.
 
         """
-        data = DataObject(self._env)
+        data = clips.data.DataObject(self._env)
 
         lib.EnvSlotTypes(self._env, self._cls, self._name, data.byref)
 
@@ -374,7 +375,7 @@ class ClassSlot:
         The Python equivalent of the CLIPS slot-sources function.
 
         """
-        data = DataObject(self._env)
+        data = clips.data.DataObject(self._env)
 
         lib.EnvSlotSources(self._env, self._cls, self._name, data.byref)
 
@@ -387,7 +388,7 @@ class ClassSlot:
         The Python equivalent of the CLIPS slot-range function.
 
         """
-        data = DataObject(self._env)
+        data = clips.data.DataObject(self._env)
 
         lib.EnvSlotRange(self._env, self._cls, self._name, data.byref)
 
@@ -400,7 +401,7 @@ class ClassSlot:
         The Python equivalent of the CLIPS slot-facets function.
 
         """
-        data = DataObject(self._env)
+        data = clips.data.DataObject(self._env)
 
         lib.EnvSlotFacets(self._env, self._cls, self._name, data.byref)
 
@@ -413,7 +414,7 @@ class ClassSlot:
         The Python equivalent of the CLIPS slot-cardinality function.
 
         """
-        data = DataObject(self._env)
+        data = clips.data.DataObject(self._env)
 
         lib.EnvSlotCardinality(
             self._env, self._cls, self._name, data.byref)
@@ -427,7 +428,7 @@ class ClassSlot:
         The Python equivalent of the CLIPS slot-default-value function.
 
         """
-        data = DataObject(self._env)
+        data = clips.data.DataObject(self._env)
 
         lib.EnvSlotDefaultValue(
             self._env, self._cls, self._name, data.byref)
@@ -441,7 +442,7 @@ class ClassSlot:
         The Python equivalent of the CLIPS slot-allowed-values function.
 
         """
-        data = DataObject(self._env)
+        data = clips.data.DataObject(self._env)
 
         lib.EnvSlotAllowedValues(
             self._env, self._cls, self._name, data.byref)
@@ -454,7 +455,7 @@ class ClassSlot:
         The Python equivalent of the CLIPS slot-allowed-classes function.
 
         """
-        data = DataObject(self._env)
+        data = clips.data.DataObject(self._env)
 
         lib.EnvSlotAllowedClasses(
             self._env, self._cls, self._name, data.byref)
@@ -474,8 +475,8 @@ class Instance:
     def __del__(self):
         try:
             lib.EnvDecrementInstanceCount(self._env, self._ist)
-        except AttributeError:
-            pass
+        except (AttributeError, TypeError):
+            pass  # mostly happening during interpreter shutdown
 
     def __hash__(self):
         return hash(self._ist)
@@ -491,14 +492,14 @@ class Instance:
             self.__class__.__name__, instance_pp_string(self._env, self._ist))
 
     def __getitem__(self, slot):
-        data = DataObject(self._env)
+        data = clips.data.DataObject(self._env)
 
         lib.EnvDirectGetSlot(self._env, self._ist, slot.encode(), data.byref)
 
         return data.value
 
     def __setitem__(self, slot, value):
-        data = DataObject(self._env)
+        data = clips.data.DataObject(self._env)
         data.value = value
 
         if lib.EnvDirectPutSlot(
@@ -521,8 +522,9 @@ class Instance:
         Message arguments must be provided as a string.
 
         """
-        output = DataObject(self._env)
-        instance = DataObject(self._env, dtype=CLIPSType.INSTANCE_ADDRESS)
+        output = clips.data.DataObject(self._env)
+        instance = clips.data.DataObject(
+            self._env, dtype=CLIPSType.INSTANCE_ADDRESS)
         instance.value = self._ist
 
         args = arguments.encode() if arguments is not None else ffi.NULL
@@ -615,11 +617,6 @@ class MessageHandler:
             raise CLIPSError(self._env)
 
         self._env = None
-
-
-class ClassDefaultMode(IntEnum):
-    CONVENIENCE_MODE = 0
-    CONSERVATION_MODE = 1
 
 
 def classes(env, names):

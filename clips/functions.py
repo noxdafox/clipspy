@@ -6,9 +6,10 @@
 
 """
 
+import clips
+
 from clips.modules import Module
 from clips.error import CLIPSError
-from clips.common import DataObject
 
 from clips._clips import lib, ffi
 
@@ -88,7 +89,7 @@ class Function:
         Function arguments must be provided as a string.
 
         """
-        data = DataObject(self._env)
+        data = clips.data.DataObject(self._env)
         name = ffi.string(lib.EnvGetDeffunctionName(self._env, self._fnc))
         args = arguments.encode() if arguments != '' else ffi.NULL
 
@@ -174,7 +175,7 @@ class Generic:
         Function arguments must be provided as a string.
 
         """
-        data = DataObject(self._env)
+        data = clips.data.DataObject(self._env)
         name = ffi.string(lib.EnvGetDefgenericName(self._env, self._gnc))
         args = arguments.encode() if arguments != '' else ffi.NULL
 
@@ -271,7 +272,7 @@ class Method:
 
     @property
     def restrictions(self):
-        data = DataObject(self._env)
+        data = clips.data.DataObject(self._env)
 
         lib.EnvGetMethodRestrictions(
             self._env, self._gnc, self._idx, data.byref)

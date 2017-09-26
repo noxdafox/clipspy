@@ -1,7 +1,7 @@
 import unittest
 from tempfile import NamedTemporaryFile
 
-from clips import Environment, Symbol, LoggingRouter
+from clips import Environment, Symbol, LoggingRouter, ImpliedFact
 
 
 DEFRULE_FACT = """
@@ -18,6 +18,12 @@ DEFRULE_INSTANCE = """
    (python-function python_method ?instance))
 """
 
+DEFFUNCTION = """
+(deffunction test-fact-function ()
+   (bind ?facts (python-function python_fact_method))
+   (python-function python_method ?facts))
+"""
+
 DEFCLASS = """(defclass TEST (is-a USER))"""
 
 
@@ -32,13 +38,23 @@ class TestEnvironment(unittest.TestCase):
         router = LoggingRouter()
         router.add_to_environment(self.env)
         self.env.build(DEFCLASS)
+        self.env.build(DEFFUNCTION)
         self.env.build(DEFRULE_FACT)
         self.env.build(DEFRULE_INSTANCE)
         self.env.define_function(python_function)
         self.env.define_function(self.python_method)
+        self.env.define_function(self.python_fact_method)
 
     def python_method(self, *value):
         self.value = value
+
+    def python_fact_method(self):
+        """Returns a list with one fact."""
+        template = self.env.facts.find_template('test-fact')
+        fact = template.new_fact()
+        fact.append(5)
+
+        return [fact]
 
     def test_eval_python_function(self):
         """Python function is evaluated correctly."""
@@ -71,6 +87,13 @@ class TestEnvironment(unittest.TestCase):
         self.env.agenda.run()
 
         self.assertEqual(self.value[0], inst)
+
+    def test_facts_function(self):
+        """Python functions can return list of facts."""
+        function = self.env.functions.find_function('test-fact-function')
+        function()
+
+        self.assertTrue(isinstance(self.value[0][0], ImpliedFact))
 
     def test_save_load(self):
         """Constructs are saved and loaded."""
