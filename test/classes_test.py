@@ -70,13 +70,13 @@ class TestClasses(unittest.TestCase):
         #     loaded = self.env.classes.load_instances(tmp.name)
         #     self.assertEqual(saved, loaded)
 
-        with NamedTemporaryFile(buffering=0) as tmp:
+        with NamedTemporaryFile() as tmp:
             saved = self.env.classes.save_instances(tmp.name)
             self.env.reset()
             loaded = self.env.classes.restore_instances(tmp.name)
             self.assertEqual(saved, loaded)
 
-        with NamedTemporaryFile(buffering=0) as tmp:
+        with NamedTemporaryFile() as tmp:
             saved = self.env.classes.save_instances(tmp.name, binary=True)
             self.env.reset()
             loaded = self.env.classes.load_instances(tmp.name)

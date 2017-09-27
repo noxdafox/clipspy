@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from clips.router import Router
 from clips.common import ENVIRONMENT_DATA
 

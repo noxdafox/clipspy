@@ -84,7 +84,7 @@ class TestAgenda(unittest.TestCase):
         activations = tuple(self.env.agenda.activations())
 
         self.assertEqual(tuple(a.name for a in activations),
-                         ('other-rule-name', 'rule-name'))
+                         (u'other-rule-name', u'rule-name'))
 
         activations[1].salience = 30
 
@@ -97,7 +97,7 @@ class TestAgenda(unittest.TestCase):
         activations = tuple(self.env.agenda.activations())
 
         self.assertEqual(tuple(a.name for a in activations),
-                         ('rule-name', 'other-rule-name'))
+                         (u'rule-name', u'other-rule-name'))
 
         self.env.agenda.refresh()
 

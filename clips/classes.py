@@ -271,7 +271,8 @@ class Class:
 
         lib.EnvClassSubclasses(self._env, self._cls, data.byref, int(inherited))
 
-        yield from classes(self._env, data.value)
+        for klass in classes(self._env, data.value):
+            yield klass
 
     def superclasses(self, inherited=False):
         """Iterate over the superclasses of the class.
@@ -285,7 +286,8 @@ class Class:
         lib.EnvClassSuperclasses(
             self._env, self._cls, data.byref, int(inherited))
 
-        yield from classes(self._env, data.value)
+        for klass in classes(self._env, data.value):
+            yield klass
 
     def message_handlers(self):
         """Iterate over the message handlers of the class."""
@@ -461,7 +463,8 @@ class ClassSlot:
             self._env, self._cls, self._name, data.byref)
 
         if isinstance(data.value, list):
-            yield from classes(self._env, data.value)
+            for klass in classes(self._env, data.value):
+                yield klass
 
 
 class Instance:

@@ -1,5 +1,7 @@
 import os
 
+from itertools import chain
+
 import clips
 
 from clips.modules import Module
@@ -86,7 +88,7 @@ class Facts:
         return ret
 
 
-class Fact:
+class Fact(object):
     __slots__ = '_env', '_fact'
 
     def __init__(self, env, fact):
@@ -109,7 +111,7 @@ class Fact:
     def __str__(self):
         string = fact_pp_string(self._env, self._fact)
 
-        return string.split('     ', maxsplit=1)[-1]
+        return string.split('     ', 1)[-1]
 
     def __repr__(self):
         return "%s: %s" % (
@@ -154,7 +156,7 @@ class ImpliedFact(Fact):
     def __iter__(self):
         slot = slot_value(self._env, self._fact, None)
 
-        return iter((self.template.name, *slot))
+        return chain((self.template.name, ), slot)
 
     def __len__(self):
         return len(slot_value(self._env, self._fact, None)) + 1
@@ -192,7 +194,7 @@ class TemplateFact(Fact):
     def __iter__(self):
         slots = slot_values(self._env, self._fact, self.template._tpl)
 
-        return iter((('', self.template.name), *slots))
+        return chain((('', self.template.name), ), slots)
 
     def __len__(self):
         slots = slot_values(self._env, self._fact, self.template._tpl)

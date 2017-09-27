@@ -6,10 +6,15 @@ from collections import namedtuple
 from clips._clips import lib, ffi
 
 
-class Symbol(str):
-    """Python equivalent of a CLIPS SYMBOL."""
-    def __new__(cls, symbol):
-        return str.__new__(cls, sys.intern(symbol))
+if sys.version_info.major == 3:
+    class Symbol(str):
+        """Python equivalent of a CLIPS SYMBOL."""
+        def __new__(cls, symbol):
+            return str.__new__(cls, sys.intern(symbol))
+elif sys.version_info.major == 2:
+    class Symbol(str):
+        """Python equivalent of a CLIPS SYMBOL."""
+        pass
 
 
 class CLIPSType(IntEnum):

@@ -57,7 +57,7 @@ class Functions:
         return Generic(self._env, defgeneric)
 
 
-class Function:
+class Function(object):
     """This class encapsulates the CLIPS Deffunction data structure."""
 
     __slots__ = '_env', '_fnc'
@@ -145,7 +145,7 @@ class Function:
         self._env = None
 
 
-class Generic:
+class Generic(object):
     __slots__ = '_env', '_gnc'
 
     def __init__(self, env, gnc):
@@ -230,7 +230,7 @@ class Generic:
         self._env = None
 
 
-class Method:
+class Method(object):
     __slots__ = '_env', '_gnc', '_idx'
 
     def __init__(self, env, gnc, idx):

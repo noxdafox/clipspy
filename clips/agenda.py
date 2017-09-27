@@ -7,7 +7,7 @@ from clips.common import Strategy, SalienceEvaluation, Verbosity
 from clips._clips import lib, ffi
 
 
-class Agenda:
+class Agenda(object):
     def __init__(self, env):
         self._env = env
 
@@ -273,7 +273,7 @@ class Rule:
         self._env = None
 
 
-class Activation:
+class Activation(object):
     def __init__(self, env, act):
         self._env = env
         self._act = act

@@ -34,7 +34,7 @@ class TestFacts(unittest.TestCase):
         self.assertTrue('(two-facts)' in (str(f)
                                           for f in self.env.facts.facts()))
 
-        with NamedTemporaryFile(buffering=0) as tmp:
+        with NamedTemporaryFile() as tmp:
             saved = self.env.facts.save_facts(tmp.name)
             self.env.reset()
             loaded = self.env.facts.load_facts(tmp.name)

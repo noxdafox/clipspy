@@ -1,9 +1,11 @@
+from __future__ import print_function
+
 import logging
 
 from clips._clips import lib, ffi
 
 
-class Router:
+class Router(object):
     def __init__(self, name, priority):
         self._env = None
         self._name = name
