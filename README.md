@@ -8,12 +8,10 @@ Python CFFI bindings for CLIPS 6.30.
 Installation
 ------------
 
-Currently, only Python 3 is supported. Python2 and PyPy are in the roadmap.
-
 Run the command from the project root folder:
 
 ```bash
-# python3 setup.py install
+# python setup.py install
 ```
 
 The CLIPS shared libraries and headers must be installed within the system.
@@ -21,6 +19,6 @@ The CLIPS shared libraries and headers must be installed within the system.
 If they are not in the default locations, they can be passed to the compiler:
 
 ```bash
-$ python3 setup.py build_ext --include-dirs <local include dir> --libraries <local lib dir>
-# python3 setup.py install
+$ python setup.py build_ext --include-dirs <local include dir> --libraries <local lib dir>
+# python setup.py install
 ```
