@@ -95,6 +95,17 @@ class TestEnvironment(unittest.TestCase):
 
         self.assertTrue(isinstance(self.value[0][0], ImpliedFact))
 
+    def test_batch_star(self):
+        """Commands are evaluated from file."""
+        with NamedTemporaryFile() as tmp:
+            tmp.write(b"(assert (test-fact))\n")
+            tmp.flush()
+
+            self.env.batch_star(tmp.name)
+
+        self.assertTrue(
+            'test-fact' in (f.template.name for f in self.env.facts.facts()))
+
     def test_save_load(self):
         """Constructs are saved and loaded."""
         with NamedTemporaryFile() as tmp:

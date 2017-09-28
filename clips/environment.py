@@ -109,6 +109,15 @@ class Environment(object):
         if ret == 0:
             raise CLIPSError(self._env)
 
+    def batch_star(self, path):
+        """Evaluate the commands contained in the specific path.
+
+        The Python equivalent of the CLIPS batch* command.
+
+        """
+        if lib.EnvBatchStar(self._env, path.encode()) != 1:
+            raise CLIPSError(self._env)
+
     def build(self, construct):
         """Build a single construct in CLIPS.
 
