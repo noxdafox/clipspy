@@ -1,0 +1,22 @@
+language: python
+matrix:
+  include:
+    - os: linux
+      sudo: required
+      python: 2.7
+    - os: linux
+      sudo: required
+      python: 3.4
+    - os: linux
+      sudo: required
+      python: 3.6
+env:
+  global:
+    - LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/clips_core_source_630/core/:$LD_LIBRARY_PATH
+install:
+  - ./.travis_install.sh
+script:
+  - python -m pytest -v
+branches:
+  only:
+  - master
