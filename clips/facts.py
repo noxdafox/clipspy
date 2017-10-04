@@ -125,6 +125,10 @@ class Fact(object):
     @property
     def asserted(self):
         """True if the fact has been asserted within CLIPS."""
+        # https://sourceforge.net/p/clipsrules/discussion/776945/thread/4f04bb9e/
+        if self.index == 0:
+            return False
+
         return bool(lib.EnvFactExistp(self._env, self._fact))
 
     @property
@@ -135,6 +139,9 @@ class Fact(object):
 
     def assertit(self):
         """Assert the fact within CLIPS."""
+        if self.asserted:
+            raise RuntimeError("Fact already asserted")
+
         lib.EnvAssignFactSlotDefaults(self._env, self._fact)
 
         if lib.EnvAssert(self._env, self._fact) == ffi.NULL:
@@ -211,6 +218,9 @@ class TemplateFact(Fact):
             "'%s' fact has not slot '%s'" % (self.template.name, key))
 
     def __setitem__(self, key, value):
+        if self.asserted:
+            raise RuntimeError("Fact already asserted")
+
         data = clips.data.DataObject(self._env)
         data.value = value
 
