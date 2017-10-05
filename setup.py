@@ -47,6 +47,7 @@ setup(
     install_requires=["cffi>=1.0.0"],
     extras_require={":python_version<'3'": ["enum34"]},
     cffi_modules=["clips/clips_build.py:ffibuilder"],
+    data_files=[('lib', ['lib/clips.c', 'lib/clips.cdef'])],
     keywords="clips python cffi expert-system",
     url="https://github.com/noxdafox/clipspy",
     classifiers=[
