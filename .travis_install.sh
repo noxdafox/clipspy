@@ -29,6 +29,6 @@ sudo pip install --upgrade pytest
 python setup.py build_ext --include-dirs $CLIPS_DIR/core/ --library-dirs $CLIPS_DIR/core/
 python setup.py install
 
-CFLAGS="-I$CLIPS_DIR/core/" LDFLAGS="-L$CLIPS_DIR/core/" python clips_build.py
+CFLAGS="-I$CLIPS_DIR/core/" LDFLAGS="-L$CLIPS_DIR/core/" python clips/clips_build.py
 
 mv _clips* clips/
