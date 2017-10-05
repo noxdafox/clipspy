@@ -40,7 +40,7 @@ setup(
     author_email="noxdafox@gmail.com",
     description=("CLIPS Python bindings"),
     license="BSD",
-    long_description=read('README.md'),
+    long_description=read('README.rst'),
     packages=find_packages(),
     ext_package="clips",
     setup_requires=["cffi>=1.0.0"],
