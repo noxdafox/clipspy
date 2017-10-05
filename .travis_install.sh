@@ -2,7 +2,7 @@
 
 WORK_DIR=$(pwd)
 CLIPS_DIR=$WORK_DIR/clips_core_source_630
-DOWNLOAD_URL="https://downloads.sourceforge.net/project/clipsrules/CLIPS/6.30/clips_core_source_630.zip?r=https%3A%2F%2Fsourceforge.net%2Fsettings%2Fmirror_choices%3Fprojectname%3Dclipsrules%26filename%3DCLIPS%2F6.30%2Fclips_core_source_630.zip&ts=1507140926&use_mirror=netcologne"
+DOWNLOAD_URL="https://downloads.sourceforge.net/project/clipsrules/CLIPS/6.30/clips_core_source_630.zip"
 
 wget -O clips.zip $DOWNLOAD_URL
 
