@@ -27,20 +27,28 @@
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import os
 from setuptools import find_packages, setup
+
+def read(fname):
+    return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 setup(
     name="clipspy",
     version="0.0.1",
     author="Matteo Cafasso",
     author_email="noxdafox@gmail.com",
-    description=("CLIPS Python bindings."),
+    description=("CLIPS Python bindings"),
+    license="BSD",
+    long_description=read('README.md'),
     packages=find_packages(),
     ext_package="clips",
     setup_requires=["cffi>=1.0.0"],
     install_requires=["cffi>=1.0.0"],
     extras_require={":python_version<'3'": ["enum34"]},
     cffi_modules=["clips_build.py:ffibuilder"],
+    keywords="clips python cffi expert-system",
+    url="https://github.com/noxdafox/clipspy",
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 2",
