@@ -9,7 +9,7 @@ setup(
     packages=find_packages(),
     ext_package="clips",
     setup_requires=["cffi>=1.0.0"],
-    install_requires=["cffi>=1.0.0"],
+    install_requires=["cffi>=1.0.0", "enum34"],
     cffi_modules=["clips_build.py:ffibuilder"],
     classifiers=[
         "Programming Language :: Python",
