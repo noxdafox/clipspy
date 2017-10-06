@@ -27,6 +27,14 @@
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+"""This module contains the definition of:
+
+  * Modules namespace class
+  * Module class
+  * Global class
+
+"""
+
 import clips
 
 from clips.error import CLIPSError
@@ -35,7 +43,7 @@ from clips._clips import lib, ffi
 
 
 class Modules:
-    """Globals and Modules wrapper class."""
+    """Globals and Modules namespace class."""
 
     __slots__ = '_env'
 
@@ -103,9 +111,12 @@ class Modules:
         return Module(self._env, defmodule)
 
 
-
 class Global:
-    """This class encapsulates the CLIPS Defglobal data structure."""
+    """A CLIPS global variable.
+
+    In CLIPS, Globals are defined via the (defglobal) statement.
+
+    """
 
     __slots__ = '_env', '_glb'
 
@@ -199,6 +210,7 @@ class Global:
 
 
 class Module:
+    """Modules are namespaces restricting the CLIPS constructs scope."""
     __slots__ = '_env', '_mdl'
 
     def __init__(self, env, mdl):

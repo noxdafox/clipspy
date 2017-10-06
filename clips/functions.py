@@ -29,6 +29,7 @@
 
 """This module contains the definition of:
 
+  * Functions namespace class
   * Function class
   * Generic class
   * Method class
@@ -44,7 +45,7 @@ from clips._clips import lib, ffi
 
 
 class Functions:
-    """Functions, Generics and Methods wrapper class."""
+    """Functions, Generics and Methods namespace class."""
 
     __slots__ = '_env'
 
@@ -87,7 +88,11 @@ class Functions:
 
 
 class Function(object):
-    """This class encapsulates the CLIPS Deffunction data structure."""
+    """A CLIPS user defined function.
+
+    In CLIPS, Functions are defined via the (deffunction) statement.
+
+    """
 
     __slots__ = '_env', '_fnc'
 
@@ -175,6 +180,12 @@ class Function(object):
 
 
 class Generic(object):
+    """A CLIPS generic function.
+
+    In CLIPS, Functions are defined via the (defgeneric) statement.
+
+    """
+
     __slots__ = '_env', '_gnc'
 
     def __init__(self, env, gnc):
@@ -260,6 +271,11 @@ class Generic(object):
 
 
 class Method(object):
+    """Methods implement the generic logic
+    according to the input parameter types.
+
+    """
+
     __slots__ = '_env', '_gnc', '_idx'
 
     def __init__(self, env, gnc, idx):

@@ -1,3 +1,42 @@
+# Copyright (c) 2016-2017, Matteo Cafasso
+# All rights reserved.
+
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+
+# 1. Redistributions of source code must retain the above copyright notice,
+# this list of conditions and the following disclaimer.
+
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+# this list of conditions and the following disclaimer in the documentation
+# and/or other materials provided with the distribution.
+
+# 3. Neither the name of the copyright holder nor the names of its contributors
+# may be used to endorse or promote products derived from this software without
+# specific prior written permission.
+
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+# THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+# PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS
+# BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
+# OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
+# OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+# OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+# EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+"""This module contains the definition of:
+
+  * Facts namespace class
+  * ImpliedFact class
+  * TemplateFact class
+  * Template class
+  * TemplateSlot class
+
+"""
+
 import os
 
 from itertools import chain
@@ -12,7 +51,7 @@ from clips._clips import lib, ffi
 
 
 class Facts:
-    """Facts and Templates wrapper class."""
+    """Facts and Templates namespace class."""
 
     __slots__ = '_env'
 
@@ -46,7 +85,7 @@ class Facts:
         return Template(self._env, deftemplate)
 
     def assert_string(self, string):
-        """Asserts a fact as string."""
+        """Assert a fact as string."""
         fact = lib.EnvAssertString(self._env, string.encode())
 
         if fact == ffi.NULL:
@@ -89,6 +128,8 @@ class Facts:
 
 
 class Fact(object):
+    """CLIPS Fact base class."""
+
     __slots__ = '_env', '_fact'
 
     def __init__(self, env, fact):
@@ -133,12 +174,12 @@ class Fact(object):
 
     @property
     def template(self):
-        """The fact Template."""
+        """The associated Template."""
         return Template(
             self._env, lib.EnvFactDeftemplate(self._env, self._fact))
 
     def assertit(self):
-        """Assert the fact within CLIPS."""
+        """Assert the fact within the CLIPS environment."""
         if self.asserted:
             raise RuntimeError("Fact already asserted")
 
@@ -148,12 +189,18 @@ class Fact(object):
             raise CLIPSError(self._env)
 
     def retract(self):
-        """Retract the fact from CLIPS."""
+        """Retract the fact from the CLIPS environment."""
         if lib.EnvRetract(self._env, self._fact) != 1:
             raise CLIPSError(self._env)
 
 
 class ImpliedFact(Fact):
+    """An Implied Fact or Ordered Fact is a list
+    where the first element is the fact template name
+    followed by the remaining information.
+
+    """
+
     __slots__ = '_env', '_fact', '_multifield'
 
     def __init__(self, env, fact):
@@ -198,6 +245,11 @@ class ImpliedFact(Fact):
 
 
 class TemplateFact(Fact):
+    """An Template Fact or Unordered Fact is a dictionary
+    where each slot name is a key.
+
+    """
+
     def __iter__(self):
         slots = slot_values(self._env, self._fact, self.template._tpl)
 
@@ -248,6 +300,18 @@ class TemplateFact(Fact):
 
 
 class Template:
+    """A Fact Template is a formal representation of the fact data structure.
+
+    In CLIPS, Templates are defined via the (deftemplate) statement.
+
+    Templates allow to create new facts
+    to be asserted within the CLIPS environment.
+
+    Implied facts are associated to implied templates. Implied templates
+    have a limited set of features. For example, they do not support slots.
+
+    """
+
     __slots__ = '_env', '_tpl'
 
     def __init__(self, env, tpl):
@@ -349,6 +413,12 @@ class Template:
 
 
 class TemplateSlot:
+    """Template Facts organize the information within Slots.
+
+    Slots might restrict the type or amount of data they store.
+
+    """
+
     __slots__ = '_env', '_tpl', '_name'
 
     def __init__(self, env, tpl, name):

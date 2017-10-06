@@ -36,6 +36,8 @@ from clips._clips import lib, ffi
 
 
 class CLIPSError(RuntimeError):
+    """An error occurred within the CLIPS Environment."""
+
     def __init__(self, env):
         message = ENVIRONMENT_DATA[env].error_router.last_message
         message = message.lstrip('\n').rstrip('\n').replace('\n', ' ')

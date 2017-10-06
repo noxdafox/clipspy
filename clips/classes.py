@@ -27,6 +27,16 @@
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+"""This module contains the definition of:
+
+  * Classes namespace class
+  * Class class
+  * Instance class
+  * ClassSlot class
+  * MessageHandler class
+
+"""
+
 import os
 
 import clips
@@ -39,7 +49,7 @@ from clips._clips import lib, ffi
 
 
 class Classes:
-    """Classes and Instances wrapper class."""
+    """Classes and Instances namespace class."""
 
     __slots__ = '_env'
 
@@ -48,7 +58,7 @@ class Classes:
 
     @property
     def default_mode(self):
-        """Returns the current class defaults mode.
+        """Return the current class defaults mode.
 
         The Python equivalent of the CLIPS get-class-defaults-mode command.
 
@@ -57,7 +67,7 @@ class Classes:
 
     @default_mode.setter
     def default_mode(self, value):
-        """Returns the current class defaults mode.
+        """Return the current class defaults mode.
 
         The Python equivalent of the CLIPS get-class-defaults-mode command.
 
@@ -171,6 +181,15 @@ class Classes:
 
 
 class Class:
+    """A Class is a template for creating instances of objects.
+
+    In CLIPS, Classes are defined via the (defclass) statement.
+
+    Classes allow to create new instances
+    to be added within the CLIPS environment.
+
+    """
+
     __slots__ = '_env', '_cls'
 
     def __init__(self, env, cls):
@@ -248,7 +267,7 @@ class Class:
         lib.EnvSetDefclassWatchSlots(self._env, int(flag), self._cls)
 
     def new_instance(self, name):
-        """Creates a new raw instance from this Class."""
+        """Create a new raw instance from this Class."""
         ist = lib.EnvCreateRawInstance(self._env, self._cls, name.encode())
         if ist == ffi.NULL:
             raise CLIPSError(self._env)
@@ -342,6 +361,12 @@ class Class:
 
 
 class ClassSlot:
+    """A Class Instances organize the information within Slots.
+
+    Slots might restrict the type or amount of data they store.
+
+    """
+
     __slots__ = '_env', '_cls', '_name'
 
     def __init__(self, env, cls, name):
@@ -497,6 +522,12 @@ class ClassSlot:
 
 
 class Instance:
+    """A Class Instance is an occurrence of an object.
+
+    Instances are dictionaries where each slot name is a key.
+
+    """
+
     __slots__ = '_env', '_ist'
 
     def __init__(self, env, ist):
@@ -549,7 +580,7 @@ class Instance:
         return Class(self._env, lib.EnvGetInstanceClass(self._env, self._ist))
 
     def send(self, message, arguments=None):
-        """Sends a message to the Instance.
+        """Send a message to the Instance.
 
         Message arguments must be provided as a string.
 
@@ -581,6 +612,10 @@ class Instance:
 
 
 class MessageHandler:
+    """MessageHandlers are the CLIPS equivalent of instance methods in Python.
+
+    """
+
     __slots__ = '_env', '_cls', '_idx'
 
     def __init__(self, env, cls, idx):

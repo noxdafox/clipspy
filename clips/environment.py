@@ -41,6 +41,20 @@ from clips._clips import lib, ffi
 
 
 class Environment(object):
+    """The environment class encapsulates an independent CLIPS engine
+    with its own data structures.
+
+    All the CLIPS APIs are accessible through the Environment and grouped
+    into the following namespaces.
+
+    * Facts: facts and templates
+    * Agenda: rules and activations
+    * Classes: classes and instances
+    * Modules: modules and global variables
+    * Functions: functions, generics and methods
+
+    """
+
     __slots__ = ('_env', '_facts', '_agenda',
                  '_classes', '_modules', '_functions')
 
@@ -88,7 +102,7 @@ class Environment(object):
     def classes(self):
         """Environment Classes namespace.
 
-        Classe and Instance functions are grouped under this namespace.
+        Class and Instance functions are grouped under this namespace.
 
         """
         return self._classes

@@ -27,6 +27,14 @@
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+"""This module contains the definition of:
+
+  * Agenda class
+  * Rule class
+  * Activation class
+
+"""
+
 import clips
 
 from clips.modules import Module
@@ -37,6 +45,14 @@ from clips._clips import lib, ffi
 
 
 class Agenda(object):
+    """In CLIPS, when all the conditions to activate a rule are met,
+    The Rule action is placed on the Agenda.
+
+    The CLIPS Agenda is responsible of sorting the Rule Activations
+    according to their salience and the conflict resolution strategy.
+
+    """
+
     def __init__(self, env):
         self._env = env
 
@@ -177,7 +193,11 @@ class Agenda(object):
 
 
 class Rule:
-    """Defrule."""
+    """A CLIPS rule.
+
+    In CLIPS, Rules are defined via the (defrule) statement.
+
+    """
 
     __slots__ = '_env', '_rule'
 
@@ -303,6 +323,13 @@ class Rule:
 
 
 class Activation(object):
+    """When all the constraints of a Rule are satisfied,
+    the Rule becomes active.
+
+    Activations are organized within the CLIPS Agenda.
+
+    """
+
     def __init__(self, env, act):
         self._env = env
         self._act = act
