@@ -35,7 +35,7 @@ def read(fname):
 
 setup(
     name="clipspy",
-    version="0.0.7",
+    version="0.0.8",
     author="Matteo Cafasso",
     author_email="noxdafox@gmail.com",
     description=("CLIPS Python bindings"),
@@ -54,7 +54,7 @@ setup(
         "Programming Language :: Python",
         "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 3",
-        "Development Status :: 5 - Production/Stable",
+        "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: BSD License"
     ]
