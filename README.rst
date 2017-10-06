@@ -3,6 +3,7 @@ CLIPS Python bindings
 
 .. image:: https://travis-ci.org/noxdafox/clipspy.svg?branch=master
    :target: https://travis-ci.org/noxdafox/clipspy
+   :alt: Build Status
 
 Python CFFI bindings for CLIPS_ 6.30.
 
@@ -57,5 +58,9 @@ Example
     # execute the activations in the agenda
     environment.agenda.run()
 
+Documentation
+-------------
+
+The ``doc`` folder contains the sources to generate the documentation via ``sphinx``.
 
 .. _CLIPS: http://www.clipsrules.net/
