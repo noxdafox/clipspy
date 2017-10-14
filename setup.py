@@ -35,7 +35,7 @@ def read(fname):
 
 setup(
     name="clipspy",
-    version="0.0.9",
+    version="0.1.0",
     author="Matteo Cafasso",
     author_email="noxdafox@gmail.com",
     description=("CLIPS Python bindings"),
