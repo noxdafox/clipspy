@@ -43,7 +43,8 @@ if sys.version_info.major == 3:
 elif sys.version_info.major == 2:
     class Symbol(str):
         """Python equivalent of a CLIPS SYMBOL."""
-        pass
+        def __new__(cls, symbol):
+            return str.__new__(cls, intern(str(symbol)))
 
 
 class CLIPSType(IntEnum):
