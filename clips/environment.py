@@ -128,14 +128,25 @@ class Environment(object):
     def load(self, path):
         """Load a set of constructs into the CLIPS data base.
 
+        Constructs can be in text or binary format.
+
         The Python equivalent of the CLIPS load command.
 
         """
+        try:
+            self._load_binary(path)
+        except CLIPSError:
+            self._load_text(path)
+
+    def _load_binary(self, path):
         ret = lib.EnvBload(self._env, path.encode())
         if ret != 1:
-            ret = lib.EnvLoad(self._env, path.encode())
-            if ret != 1:
-                raise CLIPSError(self._env)
+            raise CLIPSError(self._env)
+
+    def _load_text(self, path):
+        ret = lib.EnvLoad(self._env, path.encode())
+        if ret != 1:
+            raise CLIPSError(self._env)
 
     def save(self, path, binary=False):
         """Save a set of constructs into the CLIPS data base.

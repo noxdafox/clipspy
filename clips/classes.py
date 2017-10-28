@@ -129,15 +129,31 @@ class Classes:
         instances = instances.encode()
 
         if os.path.exists(instances):
-            ret = lib.EnvBinaryLoadInstances(self._env, instances)
-            if ret == -1:
-                ret = lib.EnvLoadInstances(self._env, instances)
-                if ret == -1:
-                    raise CLIPSError(self._env)
+            try:
+                return self._load_instances_binary(instances)
+            except CLIPSError:
+                return self._load_instances_text(instances)
         else:
-            ret = lib.EnvLoadInstancesFromString(self._env, instances, -1)
-            if ret == -1:
-                raise CLIPSError(self._env)
+            return self._load_instances_string(instances)
+
+    def _load_instances_binary(self, instances):
+        ret = lib.EnvBinaryLoadInstances(self._env, instances)
+        if ret == -1:
+            raise CLIPSError(self._env)
+
+        return ret
+
+    def _load_instances_text(self, instances):
+        ret = lib.EnvLoadInstances(self._env, instances)
+        if ret == -1:
+            raise CLIPSError(self._env)
+
+        return ret
+
+    def _load_instances_string(self, instances):
+        ret = lib.EnvLoadInstancesFromString(self._env, instances, -1)
+        if ret == -1:
+            raise CLIPSError(self._env)
 
         return ret
 
