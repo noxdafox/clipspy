@@ -1,14 +1,20 @@
 CLIPS Python bindings
 =====================
 
-.. image:: https://travis-ci.org/noxdafox/clipspy.svg?branch=master
+Python CFFI_ bindings for CLIPS_ 6.30
+
+:Source: https://github.com/noxdafox/clipspy
+:Documentation: https://clipspy.readthedocs.io
+:Download: https://pypi.python.org/pypi/clipspy
+
+|travis badge| |docs badge|
+
+.. |travis badge| image:: https://travis-ci.org/noxdafox/clipspy.svg?branch=master
    :target: https://travis-ci.org/noxdafox/clipspy
    :alt: Build Status
-.. image:: https://readthedocs.org/projects/clipspy/badge/?version=latest
+.. |docs badge| image:: https://readthedocs.org/projects/clipspy/badge/?version=latest
    :target: http://clipspy.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation Status
-
-Python CFFI_ bindings for CLIPS_ 6.30
 
 Installation
 ------------
@@ -19,12 +25,7 @@ If library and headers are not in the system default locations, they can be spec
 
 .. code:: bash
 
-    # CFLAGS="-I<headers path>" LDFLAGS="-L<library path>" pip install pyclips
-
-Documentation
--------------
-
-Documentation available on `Read The Docs`_.
+    # CFLAGS="-I<headers path>" LDFLAGS="-L<library path>" pip install clipspy
 
 Example
 -------
@@ -68,4 +69,3 @@ Example
 
 .. _CLIPS: http://www.clipsrules.net/
 .. _CFFI: https://cffi.readthedocs.io/en/latest/index.html
-.. _`Read The Docs`: http://clipspy.readthedocs.io
