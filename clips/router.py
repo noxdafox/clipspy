@@ -78,6 +78,8 @@ class LoggingRouter(Router):
 
     """
     LOGGERS = {'wtrace': logging.debug,
+               'stdout': logging.info,
+               'wclips': logging.info,
                'wdialog': logging.info,
                'wdisplay': logging.info,
                'wwarning': logging.warning,
@@ -91,10 +93,15 @@ class LoggingRouter(Router):
         return name in self.LOGGERS
 
     def print(self, name, message):
-        if message != '\n':
+        if message == '\n':
+            self.log_message(name)
+        else:
             self._message += message
+            if self._message.rstrip(' ').endswith('\n'):
+                self.log_message(name)
 
-        if self._message.rstrip(' ').endswith('\n'):
+    def log_message(self, name):
+        if self._message:
             self.LOGGERS[name](self._message.lstrip('\n').rstrip('\n'))
             self._message = ''
 
