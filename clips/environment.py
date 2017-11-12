@@ -55,8 +55,8 @@ class Environment(object):
 
     """
 
-    __slots__ = ('_env', '_facts', '_agenda',
-                 '_classes', '_modules', '_functions')
+    __slots__ = ('_env', '_facts', '_agenda', '_classes',
+                 '_modules', '_functions', '_namespaces')
 
     def __init__(self):
         self._env = lib.CreateEnvironment()
@@ -65,6 +65,14 @@ class Environment(object):
         self._classes = Classes(self._env)
         self._modules = Modules(self._env)
         self._functions = Functions(self._env)
+
+        # mapping between the namespace and the methods it exposes
+        self._namespaces = {m: n for n in (self._facts,
+                                           self._agenda,
+                                           self._classes,
+                                           self._modules,
+                                           self._functions)
+                            for m in dir(n) if not m.startswith('_')}
 
         lib.define_function(self._env)
 
@@ -80,50 +88,26 @@ class Environment(object):
         except (AttributeError, KeyError, TypeError):
             pass  # mostly happening during interpreter shutdown
 
-    @property
-    def facts(self):
-        """Environment Facts namespace.
+    def __getattr__(self, attr):
+        try:
+            return getattr(self._namespaces[attr], attr)
+        except (KeyError, AttributeError):
+            raise AttributeError("'%s' object has no attribute '%s'" %
+                                 (self.__class__.__name__, attr))
 
-        Fact and Template functions are grouped under this namespace.
+    def __setattr__(self, attr, value):
+        if attr in self.__slots__:
+            super(Environment, self).__setattr__(attr, value)
+            return
 
-        """
-        return self._facts
+        try:
+            setattr(self._namespaces[attr], attr, value)
+        except (KeyError, AttributeError):
+            raise AttributeError("'%s' object has no attribute '%s'" %
+                                 (self.__class__.__name__, attr))
 
-    @property
-    def agenda(self):
-        """Environment Agenda namespace.
-
-        The Agenda and the Rule functions are grouped under this namespace.
-
-        """
-        return self._agenda
-
-    @property
-    def classes(self):
-        """Environment Classes namespace.
-
-        Class and Instance functions are grouped under this namespace.
-
-        """
-        return self._classes
-
-    @property
-    def modules(self):
-        """Environment Modules namespace.
-
-        Module and Global functions are grouped under this namespace.
-
-        """
-        return self._modules
-
-    @property
-    def functions(self):
-        """Environment Functions namespace.
-
-        Function and Generic functions are grouped under this namespace.
-
-        """
-        return self._functions
+    def __dir__(self):
+        return dir(self.__class__) + list(self._namespaces.keys())
 
     def load(self, path):
         """Load a set of constructs into the CLIPS data base.
