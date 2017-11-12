@@ -44,15 +44,6 @@ class Environment(object):
     """The environment class encapsulates an independent CLIPS engine
     with its own data structures.
 
-    All the CLIPS APIs are accessible through the Environment and grouped
-    into the following namespaces.
-
-    * Facts: facts and templates
-    * Agenda: rules and activations
-    * Classes: classes and instances
-    * Modules: modules and global variables
-    * Functions: functions, generics and methods
-
     """
 
     __slots__ = ('_env', '_facts', '_agenda', '_classes',

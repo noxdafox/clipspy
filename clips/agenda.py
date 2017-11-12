@@ -51,6 +51,10 @@ class Agenda(object):
     The CLIPS Agenda is responsible of sorting the Rule Activations
     according to their salience and the conflict resolution strategy.
 
+    .. note::
+
+       All the Agenda methods are accessible through the Environment class.
+
     """
 
     def __init__(self, env):

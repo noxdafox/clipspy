@@ -45,7 +45,13 @@ from clips._clips import lib, ffi
 
 
 class Functions:
-    """Functions, Generics and Methods namespace class."""
+    """Functions, Generics and Methods namespace class.
+
+    .. note::
+
+       All the Functions methods are accessible through the Environment class.
+
+    """
 
     __slots__ = '_env'
 

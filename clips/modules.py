@@ -43,7 +43,13 @@ from clips._clips import lib, ffi
 
 
 class Modules:
-    """Globals and Modules namespace class."""
+    """Globals and Modules namespace class.
+
+    .. note::
+
+       All the Modules methods are accessible through the Environment class.
+
+    """
 
     __slots__ = '_env'
 

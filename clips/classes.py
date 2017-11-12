@@ -49,7 +49,13 @@ from clips._clips import lib, ffi
 
 
 class Classes:
-    """Classes and Instances namespace class."""
+    """Classes and Instances namespace class.
+
+    .. note::
+
+       All the Classes methods are accessible through the Environment class.
+
+    """
 
     __slots__ = '_env'
 

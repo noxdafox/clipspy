@@ -44,17 +44,6 @@ The mapping between CLIPS and Python types is as follows.
 
 ** `ImpliedFact` and `TemplateFact` are `Fact` subclasses
 
-Namespaces
-----------
-
-To keep the ``Environment`` interface simple, the CLIPS functions have been grouped into five different namespaces. Each namespace is accessible via an ``Environment`` specific attribute.
-
-* ``Environment.facts``: facts and templates
-* ``Environment.agenda``: rules and activations
-* ``Environment.classes``: classes and instances
-* ``Environment.modules``: modules and global variables
-* ``Environment.functions``: functions, generics and methods
-
 
 Objects lifecycle
 -----------------

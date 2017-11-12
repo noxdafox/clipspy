@@ -51,7 +51,13 @@ from clips._clips import lib, ffi
 
 
 class Facts:
-    """Facts and Templates namespace class."""
+    """Facts and Templates namespace class.
+
+    .. note::
+
+       All the Facts methods are accessible through the Environment class.
+
+    """
 
     __slots__ = '_env'
 
