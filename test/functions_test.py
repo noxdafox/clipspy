@@ -29,7 +29,6 @@ class TestFunctions(unittest.TestCase):
         function = self.env.functions.find_generic('generic-sum')
         self.assertEqual(function('1 2'), 3)
 
-
     def test_function(self):
         """Deffunction object test."""
         func = self.env.functions.find_function("function-sub")

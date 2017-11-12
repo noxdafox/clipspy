@@ -14,8 +14,10 @@ DEFTEMPLATE = """(deftemplate MAIN::template-fact
 
 IMPL_STR = '(implied-fact 1 2.3 "4" five)'
 IMPL_RPR = 'ImpliedFact: f-2     (implied-fact 1 2.3 "4" five)'
-TMPL_STR = '(template-fact (int 1) (float 2.2) (str "4") (symbol five) (multifield 1 2))'
-TMPL_RPR = 'TemplateFact: f-1     (template-fact (int 1) (float 2.2) (str "4") (symbol five) (multifield 1 2))'
+TMPL_STR = '(template-fact (int 1) (float 2.2) (str "4") (symbol five) ' + \
+           '(multifield 1 2))'
+TMPL_RPR = 'TemplateFact: f-1     (template-fact (int 1) (float 2.2) ' + \
+           '(str "4") (symbol five) (multifield 1 2))'
 
 
 class TestFacts(unittest.TestCase):
