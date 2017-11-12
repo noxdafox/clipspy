@@ -27,34 +27,34 @@ class TestFacts(unittest.TestCase):
 
     def test_facts(self):
         """Facts wrapper test."""
-        template = self.env.facts.find_template('template-fact')
-        self.assertTrue(template in self.env.facts.templates())
-        fact = self.env.facts.assert_string('(implied-fact)')
-        self.assertTrue(fact in self.env.facts.facts())
+        template = self.env.find_template('template-fact')
+        self.assertTrue(template in self.env.templates())
+        fact = self.env.assert_string('(implied-fact)')
+        self.assertTrue(fact in self.env.facts())
 
-        self.env.facts.load_facts('(one-fact) (two-facts)')
+        self.env.load_facts('(one-fact) (two-facts)')
         self.assertTrue('(two-facts)' in (str(f)
-                                          for f in self.env.facts.facts()))
+                                          for f in self.env.facts()))
 
         with NamedTemporaryFile() as tmp:
-            saved = self.env.facts.save_facts(tmp.name)
+            saved = self.env.save_facts(tmp.name)
             self.env.reset()
-            loaded = self.env.facts.load_facts(tmp.name)
+            loaded = self.env.load_facts(tmp.name)
             self.assertEqual(saved, loaded)
 
     def test_implied_fact(self):
         """ImpliedFacts are asserted."""
-        self.env.facts.assert_string('(implied-fact)')
+        self.env.assert_string('(implied-fact)')
 
         expected = [Symbol('implied-fact'), 1, 2.3, '4', Symbol('five')]
-        template = self.env.facts.find_template('implied-fact')
+        template = self.env.find_template('implied-fact')
         fact = template.new_fact()
 
         fact.append(1)
         fact.extend((2.3, '4', Symbol('five')))
         fact.assertit()
 
-        for asserted_fact in self.env.facts.facts():
+        for asserted_fact in self.env.facts():
             if asserted_fact == fact:
                 break
 
@@ -69,7 +69,7 @@ class TestFacts(unittest.TestCase):
         """TemplateFacts are asserted."""
         expected = {'': 'template-fact', 'int': 1, 'float': 2.2,
                     'str': '4', 'symbol': Symbol('five'), 'multifield': [1, 2]}
-        template = self.env.facts.find_template('template-fact')
+        template = self.env.find_template('template-fact')
         fact = template.new_fact()
 
         fact['int'] = 1
@@ -78,7 +78,7 @@ class TestFacts(unittest.TestCase):
         fact.assertit()
 
         self.assertEqual(fact.index, 1)
-        for asserted_fact in self.env.facts.facts():
+        for asserted_fact in self.env.facts():
             if asserted_fact == fact:
                 break
 
@@ -91,9 +91,9 @@ class TestFacts(unittest.TestCase):
 
     def test_implied_fact_already_asserted(self):
         """Asserted ImpliedFacts cannot be modified or re-asserted."""
-        self.env.facts.assert_string('(implied-fact)')
+        self.env.assert_string('(implied-fact)')
 
-        template = self.env.facts.find_template('implied-fact')
+        template = self.env.find_template('implied-fact')
         fact = template.new_fact()
 
         fact.extend((1, 2.3, '4', Symbol('five')))
@@ -108,7 +108,7 @@ class TestFacts(unittest.TestCase):
 
     def test_template_fact_already_asserted(self):
         """Asserted TemplateFacts cannot be modified or re-asserted."""
-        template = self.env.facts.find_template('template-fact')
+        template = self.env.find_template('template-fact')
         fact = template.new_fact()
 
         fact.update({'int': 1, 'float': 2.2, 'str': '4',
@@ -124,25 +124,25 @@ class TestFacts(unittest.TestCase):
 
     def test_retract_fact(self):
         """Retracted fact is not anymore in the fact list."""
-        self.env.facts.assert_string('(implied-fact)')
+        self.env.assert_string('(implied-fact)')
 
-        template = self.env.facts.find_template('implied-fact')
+        template = self.env.find_template('implied-fact')
         fact = template.new_fact()
 
         fact.extend((1, 2.3, '4', Symbol('five')))
         fact.assertit()
 
         self.assertTrue(fact.asserted)
-        self.assertTrue(fact in list(self.env.facts.facts()))
+        self.assertTrue(fact in list(self.env.facts()))
 
         fact.retract()
 
         self.assertFalse(fact.asserted)
-        self.assertFalse(fact in list(self.env.facts.facts()))
+        self.assertFalse(fact in list(self.env.facts()))
 
     def test_implied_fact_template(self):
         """ImpliedFact template properties."""
-        fact = self.env.facts.assert_string('(implied-fact 1 2.3 "4" five)')
+        fact = self.env.assert_string('(implied-fact 1 2.3 "4" five)')
         template = fact.template
 
         self.assertTrue(template.implied)
@@ -157,7 +157,7 @@ class TestFacts(unittest.TestCase):
 
     def test_template_fact_template(self):
         """TemplateFact template properties."""
-        template = self.env.facts.find_template('template-fact')
+        template = self.env.find_template('template-fact')
 
         self.assertEqual(template.name, 'template-fact')
         self.assertEqual(template.module.name, 'MAIN')
@@ -170,7 +170,7 @@ class TestFacts(unittest.TestCase):
 
     def test_template_fact_slot(self):
         """TemplateFact template Slot."""
-        template = self.env.facts.find_template('template-fact')
+        template = self.env.find_template('template-fact')
 
         slots = {s.name: s for s in template.slots()}
 

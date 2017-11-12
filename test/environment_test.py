@@ -50,7 +50,7 @@ class TestEnvironment(unittest.TestCase):
 
     def python_fact_method(self):
         """Returns a list with one fact."""
-        template = self.env.facts.find_template('test-fact')
+        template = self.env.find_template('test-fact')
         fact = template.new_fact()
         fact.append(5)
 
@@ -74,23 +74,23 @@ class TestEnvironment(unittest.TestCase):
         self.assertEqual(self.value, expected)
 
     def test_rule_python_fact(self):
-        """Facts are forwarded to Python functions."""
-        fact = self.env.facts.assert_string('(test-fact)')
-        self.env.agenda.run()
+        """Facts are forwarded to Python """
+        fact = self.env.assert_string('(test-fact)')
+        self.env.run()
 
         self.assertEqual(self.value[0], fact)
 
     def test_rule_python_instance(self):
-        """Instances are forwarded to Python functions."""
-        cl = self.env.classes.find_class('TEST')
+        """Instances are forwarded to Python """
+        cl = self.env.find_class('TEST')
         inst = cl.new_instance('test')
-        self.env.agenda.run()
+        self.env.run()
 
         self.assertEqual(self.value[0], inst)
 
     def test_facts_function(self):
-        """Python functions can return list of facts."""
-        function = self.env.functions.find_function('test-fact-function')
+        """Python functions can return list of """
+        function = self.env.find_function('test-fact-function')
         function()
 
         self.assertTrue(isinstance(self.value[0][0], ImpliedFact))
@@ -104,7 +104,7 @@ class TestEnvironment(unittest.TestCase):
             self.env.batch_star(tmp.name)
 
         self.assertTrue(
-            'test-fact' in (f.template.name for f in self.env.facts.facts()))
+            'test-fact' in (f.template.name for f in self.env.facts()))
 
     def test_save_load(self):
         """Constructs are saved and loaded."""
@@ -114,7 +114,7 @@ class TestEnvironment(unittest.TestCase):
             self.env.load(tmp.name)
 
             self.assertTrue('fact-rule' in
-                            (r.name for r in self.env.agenda.rules()))
+                            (r.name for r in self.env.rules()))
 
         with NamedTemporaryFile() as tmp:
             self.env.save(tmp.name, binary=True)
@@ -122,4 +122,4 @@ class TestEnvironment(unittest.TestCase):
             self.env.load(tmp.name)
 
             self.assertTrue('fact-rule' in
-                            (r.name for r in self.env.agenda.rules()))
+                            (r.name for r in self.env.rules()))

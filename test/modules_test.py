@@ -25,31 +25,31 @@ class TestModules(unittest.TestCase):
         self.env.build(DEFMODULE)
 
         # reset MAIN module
-        module = self.env.modules.find_module('MAIN')
-        self.env.modules.current_module = module
+        module = self.env.find_module('MAIN')
+        self.env.current_module = module
 
-        module = self.env.modules.find_module('TEST')
-        self.env.modules.current_module = module
+        module = self.env.find_module('TEST')
+        self.env.current_module = module
 
-        self.assertEqual(self.env.modules.current_module,
-                         self.env.modules.find_module('TEST'))
-        self.assertTrue(module in self.env.modules.modules())
-        self.assertEqual(self.env.modules.current_module, module)
+        self.assertEqual(self.env.current_module,
+                         self.env.find_module('TEST'))
+        self.assertTrue(module in self.env.modules())
+        self.assertEqual(self.env.current_module, module)
 
         with self.assertRaises(LookupError):
-            self.env.modules.find_module("NONEXISTING")
+            self.env.find_module("NONEXISTING")
 
     def test_global(self):
         """Defglobal object test."""
-        glbl = self.env.modules.find_global("b")
+        glbl = self.env.find_global("b")
 
-        self.assertTrue(glbl in self.env.modules.globals())
+        self.assertTrue(glbl in self.env.globals())
         self.assertEqual(glbl.value, 2)
 
         glbl.value = 3
 
         self.assertEqual(glbl.value, 3)
-        self.assertTrue(self.env.modules.globals_changed)
+        self.assertTrue(self.env.globals_changed)
 
         self.assertEqual(glbl.name, "b")
         self.assertEqual(glbl.module.name, "MAIN")
@@ -64,13 +64,13 @@ class TestModules(unittest.TestCase):
 
         glbl.undefine()
 
-        self.assertTrue(glbl not in self.env.modules.globals())
+        self.assertTrue(glbl not in self.env.globals())
         with self.assertRaises(LookupError):
-            self.env.modules.find_global("b")
+            self.env.find_global("b")
 
     def test_module(self):
         """Module object test."""
-        module = self.env.modules.current_module
+        module = self.env.current_module
 
         self.assertEqual(module.name, 'MAIN')
         self.assertEqual(str(module), 'MAIN')

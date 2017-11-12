@@ -38,23 +38,23 @@ class TestAgenda(unittest.TestCase):
     def test_agenda_strategy(self):
         """Agenda strategy getting/setting."""
         for strategy in Strategy:
-            self.env.agenda.strategy = strategy
-            self.assertEqual(self.env.agenda.strategy, strategy)
+            self.env.strategy = strategy
+            self.assertEqual(self.env.strategy, strategy)
 
     def test_agenda_salience_evaluation(self):
         """Agenda salience_evaluation getting/setting."""
         for salience_evaluation in SalienceEvaluation:
-            self.env.agenda.salience_evaluation = salience_evaluation
+            self.env.salience_evaluation = salience_evaluation
             self.assertEqual(
-                self.env.agenda.salience_evaluation, salience_evaluation)
+                self.env.salience_evaluation, salience_evaluation)
 
     def test_agenda_activation(self):
         """Agenda activation test."""
-        self.env.facts.assert_string('(implied-fact implied-value)')
+        self.env.assert_string('(implied-fact implied-value)')
 
-        self.assertTrue(self.env.agenda.changed)
+        self.assertTrue(self.env.changed)
 
-        activation = tuple(self.env.agenda.activations())[0]
+        activation = tuple(self.env.activations())[0]
 
         self.assertEqual(activation.name, 'rule-name')
         self.assertEqual(activation.salience, 10)
@@ -63,49 +63,49 @@ class TestAgenda(unittest.TestCase):
 
         activation.delete()
 
-        self.assertFalse(activation in self.env.agenda.activations())
+        self.assertFalse(activation in self.env.activations())
 
     def test_agenda_run(self):
         """Agenda rules are fired on run."""
-        self.env.facts.assert_string('(implied-fact implied-value)')
+        self.env.assert_string('(implied-fact implied-value)')
 
-        self.env.agenda.run()
+        self.env.run()
 
-        fact_names = (f.template.name for f in self.env.facts.facts())
+        fact_names = (f.template.name for f in self.env.facts())
         self.assertTrue('rule-fired' in fact_names)
 
     def test_agenda_activation_order(self):
         """Agenda activations order change if salience or strategy change."""
         self.env.build(DEFOTHERRULE)
-        self.env.facts.assert_string('(implied-fact implied-value)')
+        self.env.assert_string('(implied-fact implied-value)')
 
-        self.assertTrue(self.env.agenda.changed)
+        self.assertTrue(self.env.changed)
 
-        activations = tuple(self.env.agenda.activations())
+        activations = tuple(self.env.activations())
 
         self.assertEqual(tuple(a.name for a in activations),
                          (u'other-rule-name', u'rule-name'))
 
         activations[1].salience = 30
 
-        self.assertFalse(self.env.agenda.changed)
+        self.assertFalse(self.env.changed)
 
-        self.env.agenda.reorder()
+        self.env.reorder()
 
-        self.assertTrue(self.env.agenda.changed)
+        self.assertTrue(self.env.changed)
 
-        activations = tuple(self.env.agenda.activations())
+        activations = tuple(self.env.activations())
 
         self.assertEqual(tuple(a.name for a in activations),
                          (u'rule-name', u'other-rule-name'))
 
-        self.env.agenda.refresh()
+        self.env.refresh()
 
-        self.assertTrue(self.env.agenda.changed)
+        self.assertTrue(self.env.changed)
 
-        self.env.agenda.clear()
+        self.env.clear()
 
-        activations = tuple(self.env.agenda.activations())
+        activations = tuple(self.env.activations())
 
         self.assertEqual(len(activations), 0)
 
@@ -118,9 +118,9 @@ class TestRules(unittest.TestCase):
 
     def test_rule_build(self):
         """Simple Rule build."""
-        rule = self.env.agenda.find_rule('rule-name')
+        rule = self.env.find_rule('rule-name')
 
-        self.assertTrue(rule in self.env.agenda.rules())
+        self.assertTrue(rule in self.env.rules())
         self.assertEqual(rule.module.name, 'MAIN')
         self.assertTrue(rule.deletable)
         self.assertEqual(str(rule), DEFTEMPLATERULE)
@@ -135,14 +135,14 @@ class TestRules(unittest.TestCase):
         rule.undefine()
 
         with self.assertRaises(LookupError):
-            self.env.agenda.find_rule('rule-name')
+            self.env.find_rule('rule-name')
         with self.assertRaises(TypeError):
             rule.name
 
     def test_rule_matches(self):
         """Partial rule matches."""
-        rule = self.env.agenda.find_rule('rule-name')
-        self.env.facts.assert_string('(implied-fact implied-value)')
+        rule = self.env.find_rule('rule-name')
+        self.env.assert_string('(implied-fact implied-value)')
 
         self.assertEqual(rule.matches(), (1, 0, 0))
 
@@ -150,14 +150,14 @@ class TestRules(unittest.TestCase):
 
     def test_rule_activation(self):
         """Rule activation."""
-        rule = self.env.agenda.find_rule('rule-name')
-        self.env.facts.assert_string('(implied-fact implied-value)')
-        self.env.facts.assert_string(
+        rule = self.env.find_rule('rule-name')
+        self.env.assert_string('(implied-fact implied-value)')
+        self.env.assert_string(
             '(template-fact (template-slot template-value))')
 
         self.assertEqual(rule.matches(), (2, 1, 1))
-        self.env.agenda.run()
+        self.env.run()
         rule.refresh()
 
-        fact_names = (f.template.name for f in self.env.facts.facts())
+        fact_names = (f.template.name for f in self.env.facts())
         self.assertTrue('rule-fired' in fact_names)

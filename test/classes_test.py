@@ -38,55 +38,55 @@ class TestClasses(unittest.TestCase):
     def test_classes(self):
         """Classes wrapper test."""
         self.assertEqual(
-            self.env.classes.default_mode, ClassDefaultMode.CONVENIENCE_MODE)
-        self.env.classes.default_mode = ClassDefaultMode.CONSERVATION_MODE
+            self.env.default_mode, ClassDefaultMode.CONVENIENCE_MODE)
+        self.env.default_mode = ClassDefaultMode.CONSERVATION_MODE
         self.assertEqual(
-            self.env.classes.default_mode, ClassDefaultMode.CONSERVATION_MODE)
+            self.env.default_mode, ClassDefaultMode.CONSERVATION_MODE)
 
-        defclass = self.env.classes.find_class('USER')
-        self.assertTrue(defclass in self.env.classes.classes())
+        defclass = self.env.find_class('USER')
+        self.assertTrue(defclass in self.env.classes())
 
         with self.assertRaises(LookupError):
-            self.env.classes.find_class('NonExisting')
+            self.env.find_class('NonExisting')
 
-        defclass = self.env.classes.find_class('ConcreteClass')
+        defclass = self.env.find_class('ConcreteClass')
 
         defclass.new_instance('some-instance')
         defclass.new_instance('test-instance')
 
-        instance = self.env.classes.find_instance('test-instance')
-        self.assertTrue(instance in self.env.classes.instances())
+        instance = self.env.find_instance('test-instance')
+        self.assertTrue(instance in self.env.instances())
 
         with self.assertRaises(LookupError):
-            self.env.classes.find_instance('NonExisting')
+            self.env.find_instance('NonExisting')
 
-        self.assertTrue(self.env.classes.instances_changed)
-        self.assertFalse(self.env.classes.instances_changed)
+        self.assertTrue(self.env.instances_changed)
+        self.assertFalse(self.env.instances_changed)
 
         # See: https://sourceforge.net/p/clipsrules/tickets/33/
         # with NamedTemporaryFile(buffering=0, delete=False) as tmp:
-        #     saved = self.env.classes.save_instances(tmp.name)
+        #     saved = self.env.save_instances(tmp.name)
         #     self.env.reset()
-        #     loaded = self.env.classes.load_instances(tmp.name)
+        #     loaded = self.env.load_instances(tmp.name)
         #     self.assertEqual(saved, loaded)
 
         with NamedTemporaryFile() as tmp:
-            saved = self.env.classes.save_instances(tmp.name)
+            saved = self.env.save_instances(tmp.name)
             self.env.reset()
-            loaded = self.env.classes.restore_instances(tmp.name)
+            loaded = self.env.restore_instances(tmp.name)
             self.assertEqual(saved, loaded)
 
         with NamedTemporaryFile() as tmp:
-            saved = self.env.classes.save_instances(tmp.name, binary=True)
+            saved = self.env.save_instances(tmp.name, binary=True)
             self.env.reset()
-            loaded = self.env.classes.load_instances(tmp.name)
+            loaded = self.env.load_instances(tmp.name)
             self.assertEqual(saved, loaded)
 
     def test_abstract_class(self):
         """Abstract class test."""
-        superclass = self.env.classes.find_class('USER')
-        subclass = self.env.classes.find_class('InheritClass')
-        defclass = self.env.classes.find_class('AbstractClass')
+        superclass = self.env.find_class('USER')
+        subclass = self.env.find_class('InheritClass')
+        defclass = self.env.find_class('AbstractClass')
 
         self.assertTrue(defclass.abstract)
         self.assertFalse(defclass.reactive)
@@ -105,7 +105,7 @@ class TestClasses(unittest.TestCase):
 
     def test_concrete_class(self):
         """Concrete class test."""
-        defclass = self.env.classes.find_class('ConcreteClass')
+        defclass = self.env.find_class('ConcreteClass')
 
         self.assertFalse(defclass.abstract)
         self.assertTrue(defclass.reactive)
@@ -125,7 +125,7 @@ class TestClasses(unittest.TestCase):
 
     def test_slot(self):
         """Slot test."""
-        defclass = self.env.classes.find_class('ConcreteClass')
+        defclass = self.env.find_class('ConcreteClass')
 
         slot = tuple(defclass.slots())[0]
 
@@ -148,7 +148,7 @@ class TestClasses(unittest.TestCase):
 
     def test_instance(self):
         """Instance test."""
-        defclass = self.env.classes.find_class('ConcreteClass')
+        defclass = self.env.find_class('ConcreteClass')
 
         defclass.new_instance('some-instance')
         instance = defclass.new_instance('test-instance')
@@ -172,7 +172,7 @@ class TestClasses(unittest.TestCase):
 
     def test_message_handler(self):
         """MessageHandler test."""
-        defclass = self.env.classes.find_class('MessageHandlerClass')
+        defclass = self.env.find_class('MessageHandlerClass')
 
         handler = defclass.find_message_handler('test-handler')
 
@@ -196,7 +196,7 @@ class TestClasses(unittest.TestCase):
 
     def test_message_handler_instance(self):
         """MessageHandler instance test."""
-        defclass = self.env.classes.find_class('MessageHandlerClass')
+        defclass = self.env.find_class('MessageHandlerClass')
 
         instance = defclass.new_instance('test-instance')
         instance['One'] = 1
