@@ -40,10 +40,10 @@ Example
     environment.load('constructs.clp')
 
     # assert a fact as string
-    environment.facts.assert_string('(a-fact)')
+    environment.assert_string('(a-fact)')
 
     # retrieve a fact template
-    template = environment.facts.find_template('a-fact')
+    template = environment.find_template('a-fact')
 
     # create a new fact from the template
     fact = template.new_fact()
@@ -56,7 +56,7 @@ Example
     fact.assertit()
 
     # retrieve another fact template
-    template = environment.facts.find_template('another-fact')
+    template = environment.find_template('another-fact')
     fact = template.new_fact()
 
     # template (unordered) facts are accessed as dictionaries
@@ -65,7 +65,7 @@ Example
     fact.assertit()
 
     # execute the activations in the agenda
-    environment.agenda.run()
+    environment.run()
 
 .. _CLIPS: http://www.clipsrules.net/
 .. _CFFI: https://cffi.readthedocs.io/en/latest/index.html
