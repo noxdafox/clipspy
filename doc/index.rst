@@ -56,7 +56,7 @@ Example:
 
 .. code:: python
 
-    template = env.facts.find_template('some-fact')
+    template = env.find_template('some-fact')
 
     # remove the Template from the CLIPS Environment
     template.undefine()  # from here on, the template object is unusable
@@ -68,7 +68,7 @@ If the previous example is pretty straightforward, there are more subtle scenari
 
 .. code:: python
 
-    templates = tuple(env.facts.templates())
+    templates = tuple(env.templates())
 
     # remove all CLIPS constructs from the environment
     env.clear()  # from here on, all the previously created objects are unusable
