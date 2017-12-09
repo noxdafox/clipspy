@@ -61,7 +61,7 @@ class Agenda(object):
         self._env = env
 
     @property
-    def changed(self):
+    def agenda_changed(self):
         """True if any rule activation changes have occurred."""
         value = bool(lib.EnvGetAgendaChanged(self._env))
         lib.EnvSetAgendaChanged(self._env, int(False))
