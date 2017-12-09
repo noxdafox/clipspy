@@ -74,6 +74,7 @@ class DataObject(object):
         lib.set_data_value(self._data, self.clips_value(value))
 
     def python_value(self, dtype, dvalue):
+        """Convert a CLIPS type into Python."""
         try:
             return CONVERTERS[dtype](dvalue)
         except KeyError:
@@ -87,6 +88,7 @@ class DataObject(object):
         return None
 
     def clips_value(self, dvalue):
+        """Convert a Python type into CLIPS."""
         try:
             return VALUES[type(dvalue)](self._env, dvalue)
         except KeyError:
@@ -105,7 +107,7 @@ class DataObject(object):
         multifield = lib.get_data_value(self._data)
 
         return [self.python_value(lib.get_multifield_type(multifield, i),
-                                  (lib.get_multifield_value(multifield, i)))
+                                  lib.get_multifield_value(multifield, i))
                 for i in range(begin, end + 1)]
 
     def list_to_multifield(self, values):
@@ -129,41 +131,32 @@ def string_to_str(string):
     return ffi.string(lib.to_string(string)).decode()
 
 
-if sys.version_info.major == 3:
-    TYPES = {int: clips.common.CLIPSType.INTEGER,
-             float: clips.common.CLIPSType.FLOAT,
-             str: clips.common.CLIPSType.STRING,
-             list: clips.common.CLIPSType.MULTIFIELD,
-             tuple: clips.common.CLIPSType.MULTIFIELD,
-             clips.common.Symbol: clips.common.CLIPSType.SYMBOL,
-             clips.facts.ImpliedFact: clips.common.CLIPSType.FACT_ADDRESS,
-             clips.facts.TemplateFact: clips.common.CLIPSType.FACT_ADDRESS,
-             clips.classes.Instance: clips.common.CLIPSType.INSTANCE_ADDRESS}
-    VALUES = {int: lib.EnvAddLong,
-              float: lib.EnvAddDouble,
-              ffi.CData: lambda _, v: v,
-              str: lambda e, v: lib.EnvAddSymbol(e, v.encode()),
-              clips.common.Symbol: lambda e, v: lib.EnvAddSymbol(e, v.encode())}
-elif sys.version_info.major == 2:
-    TYPES = {int: clips.common.CLIPSType.INTEGER,
-             float: clips.common.CLIPSType.FLOAT,
-             str: clips.common.CLIPSType.STRING,
-             unicode: clips.common.CLIPSType.STRING,
-             list: clips.common.CLIPSType.MULTIFIELD,
-             tuple: clips.common.CLIPSType.MULTIFIELD,
-             clips.common.Symbol: clips.common.CLIPSType.SYMBOL,
-             clips.facts.ImpliedFact: clips.common.CLIPSType.FACT_ADDRESS,
-             clips.facts.TemplateFact: clips.common.CLIPSType.FACT_ADDRESS,
-             clips.classes.Instance: clips.common.CLIPSType.INSTANCE_ADDRESS}
-    VALUES = {int: lib.EnvAddLong,
-              float: lib.EnvAddDouble,
-              ffi.CData: lambda _, v: v,
-              unicode: lambda e, v: lib.EnvAddSymbol(e, v.encode()),
-              str: lambda e, v: lib.EnvAddSymbol(e, v.encode()),
-              clips.common.Symbol: lambda e, v: lib.EnvAddSymbol(e, v.encode())}
 CONVERTERS = {clips.common.CLIPSType.FLOAT: lib.to_double,
               clips.common.CLIPSType.INTEGER: lib.to_integer,
               clips.common.CLIPSType.STRING: string_to_str,
               clips.common.CLIPSType.EXTERNAL_ADDRESS: lib.to_external_address,
               clips.common.CLIPSType.SYMBOL:
               lambda v: clips.common.Symbol(string_to_str(v))}
+
+TYPES = {type(None): clips.common.CLIPSType.SYMBOL,
+         bool: clips.common.CLIPSType.SYMBOL,
+         int: clips.common.CLIPSType.INTEGER,
+         float: clips.common.CLIPSType.FLOAT,
+         str: clips.common.CLIPSType.STRING,
+         list: clips.common.CLIPSType.MULTIFIELD,
+         tuple: clips.common.CLIPSType.MULTIFIELD,
+         clips.common.Symbol: clips.common.CLIPSType.SYMBOL,
+         clips.facts.ImpliedFact: clips.common.CLIPSType.FACT_ADDRESS,
+         clips.facts.TemplateFact: clips.common.CLIPSType.FACT_ADDRESS,
+         clips.classes.Instance: clips.common.CLIPSType.INSTANCE_ADDRESS}
+VALUES = {type(None): lambda e, v: lib.EnvAddSymbol(e, b'nil'),
+          bool: lambda e, v: lib.EnvAddSymbol(e, b'TRUE' if v else b'FALSE'),
+          int: lib.EnvAddLong,
+          float: lib.EnvAddDouble,
+          ffi.CData: lambda _, v: v,
+          str: lambda e, v: lib.EnvAddSymbol(e, v.encode()),
+          clips.common.Symbol: lambda e, v: lib.EnvAddSymbol(e, v.encode())}
+
+if sys.version_info.major == 2:
+    TYPES[unicode] = clips.common.CLIPSType.STRING
+    VALUES[unicode] = lambda e, v: lib.EnvAddSymbol(e, v.encode())
