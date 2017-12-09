@@ -52,7 +52,7 @@ class TestAgenda(unittest.TestCase):
         """Agenda activation test."""
         self.env.assert_string('(implied-fact implied-value)')
 
-        self.assertTrue(self.env.changed)
+        self.assertTrue(self.env.agenda_changed)
 
         activation = tuple(self.env.activations())[0]
 
@@ -79,7 +79,7 @@ class TestAgenda(unittest.TestCase):
         self.env.build(DEFOTHERRULE)
         self.env.assert_string('(implied-fact implied-value)')
 
-        self.assertTrue(self.env.changed)
+        self.assertTrue(self.env.agenda_changed)
 
         activations = tuple(self.env.activations())
 
@@ -88,11 +88,11 @@ class TestAgenda(unittest.TestCase):
 
         activations[1].salience = 30
 
-        self.assertFalse(self.env.changed)
+        self.assertFalse(self.env.agenda_changed)
 
         self.env.reorder()
 
-        self.assertTrue(self.env.changed)
+        self.assertTrue(self.env.agenda_changed)
 
         activations = tuple(self.env.activations())
 
@@ -101,7 +101,7 @@ class TestAgenda(unittest.TestCase):
 
         self.env.refresh()
 
-        self.assertTrue(self.env.changed)
+        self.assertTrue(self.env.agenda_changed)
 
         self.env.clear()
 
