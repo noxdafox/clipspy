@@ -31,6 +31,10 @@ def python_function(*value):
     return value
 
 
+def python_types():
+    return None, True, False
+
+
 class TestEnvironment(unittest.TestCase):
     def setUp(self):
         self.value = None
@@ -42,6 +46,7 @@ class TestEnvironment(unittest.TestCase):
         self.env.build(DEFRULE_FACT)
         self.env.build(DEFRULE_INSTANCE)
         self.env.define_function(python_function)
+        self.env.define_function(python_types)
         self.env.define_function(self.python_method)
         self.env.define_function(self.python_fact_method)
 
@@ -59,9 +64,11 @@ class TestEnvironment(unittest.TestCase):
     def test_eval_python_function(self):
         """Python function is evaluated correctly."""
         expected = [0, 1.1, "2", Symbol('three')]
-
         ret = self.env.eval('(python-function python_function 0 1.1 "2" three)')
+        self.assertEqual(ret, expected)
 
+        expected = [Symbol('nil'), Symbol('TRUE'), Symbol('FALSE')]
+        ret = self.env.eval('(python-function python_types)')
         self.assertEqual(ret, expected)
 
     def test_eval_python_method(self):
