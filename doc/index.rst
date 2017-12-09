@@ -40,6 +40,18 @@ The mapping between CLIPS and Python types is as follows.
 | EXTERNAL_ADDRESS | ffi.CData  |
 +------------------+------------+
 
+Python native types returned by functions defined within an Environment are mapped to the following CLIPS symbols.
+
++------------------+------------+
+| CLIPS            | Python     |
++==================+============+
+| nil              | None       |
++------------------+------------+
+| TRUE             | True       |
++------------------+------------+
+| FALSE            | False      |
++------------------+------------+
+
 \* The Python Symbol object is a `interned string`_
 
 ** `ImpliedFact` and `TemplateFact` are `Fact` subclasses
