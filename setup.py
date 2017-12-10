@@ -52,7 +52,7 @@ def read_version(path):
     except subprocess.CalledProcessError:
         with open(path) as version_file:
             version_string = version_file.read().split('=')[-1]
-            return version_string.strip().replace('"', '').decode()
+            return version_string.strip().replace('"', '')
 
 
 def write_version(path, version):
