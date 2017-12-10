@@ -1,5 +1,7 @@
-CLIPS API
-=========
+CLIPS
+=====
+
+:version: |version|
 
 Namespaces
 ----------

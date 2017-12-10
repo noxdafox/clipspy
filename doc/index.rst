@@ -96,7 +96,7 @@ API documentation
 .. toctree::
    :maxdepth: 2
 
-   modules
+   clips
 
 Indices and tables
 ==================
