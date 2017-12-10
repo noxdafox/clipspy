@@ -28,6 +28,7 @@
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import os
+import subprocess
 from setuptools import find_packages, setup
 
 
@@ -35,9 +36,36 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 
+def package_version():
+    """Get the package version via Git Tag."""
+    version_path = os.path.join(os.path.dirname(__file__), 'version.py')
+
+    version = read_version(version_path)
+    write_version(version_path, version)
+
+    return version
+
+
+def read_version(path):
+    try:
+        return subprocess.check_output(('git', 'describe')).rstrip().decode()
+    except subprocess.CalledProcessError:
+        with open(path) as version_file:
+            version_string = version_file.read().split('=')[-1]
+            return version_string.strip().replace('"', '').decode()
+
+
+def write_version(path, version):
+    msg = '"""Versioning controlled via Git Tag, check setup.py"""'
+    with open(path, 'w') as version_file:
+        version_file.write(msg + os.linesep + os.linesep +
+                           '__version__ = "{}"'.format(version) +
+                           os.linesep)
+
+
 setup(
     name="clipspy",
-    version="0.2.1",
+    version="{}".format(package_version()),
     author="Matteo Cafasso",
     author_email="noxdafox@gmail.com",
     description=("CLIPS Python bindings"),
