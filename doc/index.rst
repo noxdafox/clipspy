@@ -8,12 +8,14 @@ CLIPS Python bindings
 
 Python CFFI_ bindings for the 'C' Language Integrated Production System (CLIPS_) 6.30
 
+
 Design principles
 -----------------
 
 The clipspy bindings aim to be a "pythonic" thin layer built on top of the CLIPS native C APIs. Most of the functions and the methods directly resolve to the CLIPS functions documented in the `Advanced Programming Guide`_.
 
 Python standard paradigms are preferred such as property getters and setters, generators and magic methods.
+
 
 Data types
 ----------
@@ -88,6 +90,23 @@ If the previous example is pretty straightforward, there are more subtle scenari
     # this will cause an error
     for template in templates:
         print(template)
+
+
+Embedding Python
+----------------
+
+Through the `define_function` method, it is possible to embed Python code within the CLIPS environment.
+
+The Python function will be accessible within CLIPS via its name as if it was defined via the `deffunction` construct.
+
+.. code:: python
+
+    def function(arg, keyarg=0):
+        return arg + keyarg
+
+    env.define_function(function)
+
+    env.eval('(function 1 2)')
 
 
 API documentation
