@@ -188,13 +188,13 @@ class Environment(object):
     def define_function(self, function):
         """Define the Python function within the CLIPS environment.
 
-        Functions defined in this way can be called within CLIPS
-        via the 'python-function' symbol.
-
-        (python-function function_name arg1 arg2)
+        The Python function will be accessible within CLIPS via its name
+        as if it was defined via the `deffunction` construct.
 
         """
         ENVIRONMENT_DATA[self._env].user_functions[function.__name__] = function
+
+        self.build(DEFFUNCTION.format(function.__name__))
 
 
 @ffi.def_extern()
@@ -220,3 +220,9 @@ def python_function(env, data_object):
         ret = str("%s: %s" % (error.__class__.__name__, error))
 
     data.value = ret if ret is not None else clips.common.Symbol('nil')
+
+
+DEFFUNCTION = """
+(deffunction {0} ($?args)
+  (python-function {0} (expand$ ?args)))
+"""
