@@ -6,6 +6,11 @@
 CLIPS Python bindings
 =====================
 
+.. only:: html
+
+   :Release: |release|
+   :Date: |today|
+
 Python CFFI_ bindings for the 'C' Language Integrated Production System (CLIPS_) 6.30
 
 

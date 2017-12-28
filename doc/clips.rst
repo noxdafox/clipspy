@@ -1,7 +1,10 @@
 CLIPS
 =====
 
-:version: |version|
+.. only:: html
+
+   :Release: |release|
+   :Date: |today|
 
 Namespaces
 ----------
