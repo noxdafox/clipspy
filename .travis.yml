@@ -13,6 +13,9 @@ matrix:
     - os: linux
       sudo: required
       python: pypy
+env:
+  global:
+    - LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/clips_core_source_630/core/:$LD_LIBRARY_PATH
 install:
   - ./.travis_install.sh
 script:

@@ -1,19 +1,34 @@
 #!/bin/bash
 
-UBUNTU_XENIAL="deb http://archive.ubuntu.com/ubuntu xenial main"
-DEBIAN_UNSTABLE="deb http://ftp.se.debian.org/debian/ sid main"
+WORK_DIR=$(pwd)
+CLIPS_DIR=$WORK_DIR/clips_core_source_630
+DOWNLOAD_URL="https://downloads.sourceforge.net/project/clipsrules/CLIPS/6.30/clips_core_source_630.zip"
 
-# https://bugs.launchpad.net/ubuntu/+source/dpkg/+bug/1730627
-echo $UBUNTU_XENIAL | sudo tee /etc/apt/sources.list.d/ubuntu_xenial.list
-sudo apt update
-sudo apt install -o APT::Force-LoopBreak=1 dpkg libc6
+wget -O clips.zip $DOWNLOAD_URL
 
-echo $DEBIAN_UNSTABLE | sudo tee /etc/apt/sources.list.d/debian_unstable.list
-sudo apt-get --allow-unauthenticated update
-sudo apt install -y --allow-unauthenticated -t sid libclips libclips-dev
+unzip clips.zip
+
+cd $CLIPS_DIR
+
+cp makefiles/makefile.lib core/Makefile
+
+cd $CLIPS_DIR/core/
+
+sed -i 's/gcc -c/gcc -fPIC -c/g' Makefile
+
+make
+
+ld -G *.o -o libclips.so
+
+cd $WORK_DIR
 
 sudo pip install --upgrade pip
 sudo pip install --upgrade setuptools
 sudo pip install --upgrade pytest
 
-pip install .
+python setup.py build_ext --include-dirs $CLIPS_DIR/core/ --library-dirs $CLIPS_DIR/core/
+python setup.py install
+
+CFLAGS="-I$CLIPS_DIR/core/" LDFLAGS="-L$CLIPS_DIR/core/" python clips/clips_build.py
+
+mv _clips* clips/
