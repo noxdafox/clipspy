@@ -196,7 +196,7 @@ class Classes:
             ret = lib.EnvBinarySaveInstances(self._env, path.encode(), mode)
         else:
             ret = lib.EnvSaveInstances(self._env, path.encode(), mode)
-        if ret == -1:
+        if ret == 0:
             raise CLIPSError(self._env)
 
         return ret
