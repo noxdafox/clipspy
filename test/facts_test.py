@@ -1,5 +1,6 @@
+import os
 import unittest
-from tempfile import NamedTemporaryFile
+from tempfile import mkstemp
 
 from clips import Environment, Symbol, CLIPSError, TemplateSlotDefaultType
 
@@ -20,6 +21,20 @@ TMPL_RPR = 'TemplateFact: f-1     (template-fact (int 1) (float 2.2) ' + \
            '(str "4") (symbol five) (multifield 1 2))'
 
 
+class TempFile:
+    """Cross-platform temporary file."""
+    name = None
+
+    def __enter__(self):
+        fobj, self.name = mkstemp()
+        os.close(fobj)
+
+        return self
+
+    def __exit__(self, *_):
+        os.remove(self.name)
+
+
 class TestFacts(unittest.TestCase):
     def setUp(self):
         self.env = Environment()
@@ -36,7 +51,7 @@ class TestFacts(unittest.TestCase):
         self.assertTrue('(two-facts)' in (str(f)
                                           for f in self.env.facts()))
 
-        with NamedTemporaryFile() as tmp:
+        with TempFile() as tmp:
             saved = self.env.save_facts(tmp.name)
             self.env.reset()
             loaded = self.env.load_facts(tmp.name)

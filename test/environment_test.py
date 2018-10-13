@@ -1,5 +1,6 @@
+import os
 import unittest
-from tempfile import NamedTemporaryFile
+from tempfile import mkstemp
 
 from clips import Environment, Symbol, LoggingRouter, ImpliedFact
 
@@ -33,6 +34,20 @@ def python_function(*value):
 
 def python_types():
     return None, True, False
+
+
+class TempFile:
+    """Cross-platform temporary file."""
+    name = None
+
+    def __enter__(self):
+        fobj, self.name = mkstemp()
+        os.close(fobj)
+
+        return self
+
+    def __exit__(self, *_):
+        os.remove(self.name)
 
 
 class TestEnvironment(unittest.TestCase):
@@ -104,9 +119,9 @@ class TestEnvironment(unittest.TestCase):
 
     def test_batch_star(self):
         """Commands are evaluated from file."""
-        with NamedTemporaryFile() as tmp:
-            tmp.write(b"(assert (test-fact))\n")
-            tmp.flush()
+        with TempFile() as tmp:
+            with open(tmp.name, 'wb') as tmpfile:
+                tmpfile.write(b"(assert (test-fact))\n")
 
             self.env.batch_star(tmp.name)
 
@@ -115,7 +130,7 @@ class TestEnvironment(unittest.TestCase):
 
     def test_save_load(self):
         """Constructs are saved and loaded."""
-        with NamedTemporaryFile() as tmp:
+        with TempFile() as tmp:
             self.env.save(tmp.name)
             self.env.clear()
             self.env.load(tmp.name)
@@ -123,7 +138,7 @@ class TestEnvironment(unittest.TestCase):
             self.assertTrue('fact-rule' in
                             (r.name for r in self.env.rules()))
 
-        with NamedTemporaryFile() as tmp:
+        with TempFile() as tmp:
             self.env.save(tmp.name, binary=True)
             self.env.clear()
             self.env.load(tmp.name)
