@@ -178,6 +178,7 @@ class TestClasses(unittest.TestCase):
         self.assertEqual(
             repr(instance),
             'Instance: [test-instance] of ConcreteClass (Slot value)')
+        self.assertEqual(dict(instance), {'Slot': Symbol('value')})
 
         instance.delete()
 
