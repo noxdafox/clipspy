@@ -82,8 +82,11 @@ class TestFacts(unittest.TestCase):
 
     def test_template_fact(self):
         """TemplateFacts are asserted."""
-        expected = {'': 'template-fact', 'int': 1, 'float': 2.2,
-                    'str': '4', 'symbol': Symbol('five'), 'multifield': [1, 2]}
+        expected = {'int': 1,
+                    'float': 2.2,
+                    'str': '4',
+                    'symbol': Symbol('five'),
+                    'multifield': [1, 2]}
         template = self.env.find_template('template-fact')
         fact = template.new_fact()
 
@@ -97,7 +100,7 @@ class TestFacts(unittest.TestCase):
             if asserted_fact == fact:
                 break
 
-        self.assertEqual(len(asserted_fact), 6)
+        self.assertEqual(len(asserted_fact), 5)
         self.assertEqual(asserted_fact.index, 1)
         self.assertEqual(asserted_fact['int'], 1)
         self.assertEqual(dict(asserted_fact), expected)
