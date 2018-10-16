@@ -254,14 +254,12 @@ class TemplateFact(Fact):
     """
 
     def __iter__(self):
-        slots = slot_values(self._env, self._fact, self.template._tpl)
-
-        return chain((('', self.template.name), ), slots)
+        return chain(slot_values(self._env, self._fact, self.template._tpl))
 
     def __len__(self):
         slots = slot_values(self._env, self._fact, self.template._tpl)
 
-        return len(tuple(slots)) + 1
+        return len(tuple(slots))
 
     def __getitem__(self, key):
         slot = slot_value(self._env, self._fact, str(key).encode())
