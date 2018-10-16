@@ -546,7 +546,7 @@ class ClassSlot:
 class Instance:
     """A Class Instance is an occurrence of an object.
 
-    Instances are dictionaries where each slot name is a key.
+    Instances represent the data as dictionaries where each slot is a key.
 
     """
 
@@ -576,12 +576,13 @@ class Instance:
         return "%s: %s" % (
             self.__class__.__name__, instance_pp_string(self._env, self._ist))
 
+    def __iter__(self):
+        slot_names = (s.name for s in self.instance_class.slots())
+
+        return ((n, self._slot_value(n)) for n in slot_names)
+
     def __getitem__(self, slot):
-        data = clips.data.DataObject(self._env)
-
-        lib.EnvDirectGetSlot(self._env, self._ist, slot.encode(), data.byref)
-
-        return data.value
+        return self._slot_value(slot)
 
     def __setitem__(self, slot, value):
         data = clips.data.DataObject(self._env)
@@ -590,6 +591,13 @@ class Instance:
         if lib.EnvDirectPutSlot(
                 self._env, self._ist, slot.encode(), data.byref) == 0:
             raise CLIPSError(self._env)
+
+    def _slot_value(self, slot):
+        data = clips.data.DataObject(self._env)
+
+        lib.EnvDirectGetSlot(self._env, self._ist, slot.encode(), data.byref)
+
+        return data.value
 
     @property
     def name(self):
