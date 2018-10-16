@@ -61,7 +61,7 @@ class TestFacts(unittest.TestCase):
         """ImpliedFacts are asserted."""
         self.env.assert_string('(implied-fact)')
 
-        expected = [Symbol('implied-fact'), 1, 2.3, '4', Symbol('five')]
+        expected = (1, 2.3, '4', Symbol('five'))
         template = self.env.find_template('implied-fact')
         fact = template.new_fact()
 
@@ -73,10 +73,10 @@ class TestFacts(unittest.TestCase):
             if asserted_fact == fact:
                 break
 
-        self.assertEqual(asserted_fact[1], 1)
-        self.assertEqual(len(asserted_fact), 5)
+        self.assertEqual(asserted_fact[0], 1)
+        self.assertEqual(len(asserted_fact), 4)
         self.assertEqual(asserted_fact.index, 2)
-        self.assertEqual(list(asserted_fact), expected)
+        self.assertEqual(tuple(asserted_fact), expected)
         self.assertEqual(str(asserted_fact), IMPL_STR)
         self.assertEqual(repr(asserted_fact), IMPL_RPR)
 
