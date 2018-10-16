@@ -201,9 +201,8 @@ class Fact(object):
 
 
 class ImpliedFact(Fact):
-    """An Implied Fact or Ordered Fact is a list
-    where the first element is the fact template name
-    followed by the remaining information.
+    """An Implied Fact or Ordered Fact represents its data as a list of elements
+    similarly as for a Multifield.
 
     """
 
@@ -214,12 +213,10 @@ class ImpliedFact(Fact):
         self._multifield = []
 
     def __iter__(self):
-        slot = slot_value(self._env, self._fact, None)
-
-        return chain((self.template.name, ), slot)
+        return chain(slot_value(self._env, self._fact, None))
 
     def __len__(self):
-        return len(slot_value(self._env, self._fact, None)) + 1
+        return len(slot_value(self._env, self._fact, None))
 
     def __getitem__(self, item):
         return tuple(self)[item]
