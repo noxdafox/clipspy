@@ -135,6 +135,7 @@ CONVERTERS = {clips.common.CLIPSType.FLOAT: lib.to_double,
               clips.common.CLIPSType.INTEGER: lib.to_integer,
               clips.common.CLIPSType.STRING: string_to_str,
               clips.common.CLIPSType.EXTERNAL_ADDRESS: lib.to_external_address,
+              clips.common.CLIPSType.INSTANCE_NAME: string_to_str,
               clips.common.CLIPSType.SYMBOL:
               lambda v: clips.common.Symbol(string_to_str(v))}
 
