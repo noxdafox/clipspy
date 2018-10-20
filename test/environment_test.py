@@ -14,9 +14,11 @@ DEFRULE_FACT = """
 
 DEFRULE_INSTANCE = """
 (defrule instance-rule
-   ?instance <- (object (is-a TEST))
+   ?instance <- (object (is-a TEST)
+                        (name ?instance-name))
    =>
-   (python_method ?instance))
+   (python_method ?instance)
+   (python_method ?instance-name))
 """
 
 DEFFUNCTION = """
@@ -52,10 +54,10 @@ class TempFile:
 
 class TestEnvironment(unittest.TestCase):
     def setUp(self):
-        self.value = None
+        self.values = []
         self.env = Environment()
-        router = LoggingRouter()
-        router.add_to_environment(self.env)
+        self.router = LoggingRouter()
+        self.router.add_to_environment(self.env)
         self.env.define_function(python_function)
         self.env.define_function(python_function,
                                  name='python-function-renamed')
@@ -67,8 +69,11 @@ class TestEnvironment(unittest.TestCase):
         self.env.build(DEFRULE_FACT)
         self.env.build(DEFRULE_INSTANCE)
 
-    def python_method(self, *value):
-        self.value = value
+    def TearDown(self):
+        self.router.delete()
+
+    def python_method(self, *values):
+        self.values += values
 
     def python_fact_method(self):
         """Returns a list with one fact."""
@@ -94,19 +99,21 @@ class TestEnvironment(unittest.TestCase):
 
     def test_eval_python_method(self):
         """Python method is evaluated correctly."""
-        expected = 0, 1.1, "2", Symbol('three')
+        expected = [0, 1.1, "2", Symbol('three')]
 
         ret = self.env.eval('(python_method 0 1.1 "2" three)')
 
+        print(self.values)
+
         self.assertEqual(ret, Symbol('nil'))
-        self.assertEqual(self.value, expected)
+        self.assertEqual(self.values, expected)
 
     def test_rule_python_fact(self):
         """Facts are forwarded to Python """
         fact = self.env.assert_string('(test-fact)')
         self.env.run()
 
-        self.assertEqual(self.value[0], fact)
+        self.assertEqual(self.values[0], fact)
 
     def test_rule_python_instance(self):
         """Instances are forwarded to Python """
@@ -114,14 +121,15 @@ class TestEnvironment(unittest.TestCase):
         inst = cl.new_instance('test')
         self.env.run()
 
-        self.assertEqual(self.value[0], inst)
+        self.assertEqual(self.values[0], inst)
+        self.assertEqual(self.values[1], inst.name)
 
     def test_facts_function(self):
         """Python functions can return list of facts"""
         function = self.env.find_function('test-fact-function')
         function()
 
-        self.assertTrue(isinstance(self.value[0], ImpliedFact))
+        self.assertTrue(isinstance(self.values[0], ImpliedFact))
 
     def test_batch_star(self):
         """Commands are evaluated from file."""
