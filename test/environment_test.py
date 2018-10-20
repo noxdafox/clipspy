@@ -57,6 +57,8 @@ class TestEnvironment(unittest.TestCase):
         router = LoggingRouter()
         router.add_to_environment(self.env)
         self.env.define_function(python_function)
+        self.env.define_function(python_function,
+                                 name='python-function-renamed')
         self.env.define_function(python_types)
         self.env.define_function(self.python_method)
         self.env.define_function(self.python_fact_method)
@@ -80,6 +82,10 @@ class TestEnvironment(unittest.TestCase):
         """Python function is evaluated correctly."""
         expected = [0, 1.1, "2", Symbol('three')]
         ret = self.env.eval('(python_function 0 1.1 "2" three)')
+        self.assertEqual(ret, expected)
+
+        expected = [0, 1.1, "2", Symbol('three')]
+        ret = self.env.eval('(python-function-renamed 0 1.1 "2" three)')
         self.assertEqual(ret, expected)
 
         expected = [Symbol('nil'), Symbol('TRUE'), Symbol('FALSE')]
