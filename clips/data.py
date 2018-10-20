@@ -159,5 +159,7 @@ VALUES = {type(None): lambda e, v: lib.EnvAddSymbol(e, b'nil'),
           clips.common.Symbol: lambda e, v: lib.EnvAddSymbol(e, v.encode())}
 
 if sys.version_info.major == 2:
+    # pylint: disable=E0602
     TYPES[unicode] = clips.common.CLIPSType.STRING
+    # pylint: disable=E0602
     VALUES[unicode] = lambda e, v: lib.EnvAddSymbol(e, v.encode())
