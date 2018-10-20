@@ -185,16 +185,21 @@ class Environment(object):
         """
         lib.EnvClear(self._env)
 
-    def define_function(self, function):
+    def define_function(self, function, name=None):
         """Define the Python function within the CLIPS environment.
+
+        If a name is given, it will be the function name within CLIPS.
+        Otherwise, the name of the Python function will be used.
 
         The Python function will be accessible within CLIPS via its name
         as if it was defined via the `deffunction` construct.
 
         """
-        ENVIRONMENT_DATA[self._env].user_functions[function.__name__] = function
+        name = name if name is not None else function.__name__
 
-        self.build(DEFFUNCTION.format(function.__name__))
+        ENVIRONMENT_DATA[self._env].user_functions[name] = function
+
+        self.build(DEFFUNCTION.format(name))
 
 
 @ffi.def_extern()
