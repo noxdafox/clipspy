@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2017, Matteo Cafasso
+# Copyright (c) 2016-2018, Matteo Cafasso
 # All rights reserved.
 
 # Redistribution and use in source and binary forms, with or without
@@ -135,6 +135,7 @@ CONVERTERS = {clips.common.CLIPSType.FLOAT: lib.to_double,
               clips.common.CLIPSType.INTEGER: lib.to_integer,
               clips.common.CLIPSType.STRING: string_to_str,
               clips.common.CLIPSType.EXTERNAL_ADDRESS: lib.to_external_address,
+              clips.common.CLIPSType.INSTANCE_NAME: string_to_str,
               clips.common.CLIPSType.SYMBOL:
               lambda v: clips.common.Symbol(string_to_str(v))}
 
@@ -158,5 +159,7 @@ VALUES = {type(None): lambda e, v: lib.EnvAddSymbol(e, b'nil'),
           clips.common.Symbol: lambda e, v: lib.EnvAddSymbol(e, v.encode())}
 
 if sys.version_info.major == 2:
+    # pylint: disable=E0602
     TYPES[unicode] = clips.common.CLIPSType.STRING
+    # pylint: disable=E0602
     VALUES[unicode] = lambda e, v: lib.EnvAddSymbol(e, v.encode())

@@ -1,5 +1,6 @@
+import os
 import unittest
-from tempfile import NamedTemporaryFile
+from tempfile import mkstemp
 
 from clips import Environment, Symbol, CLIPSError, TemplateSlotDefaultType
 
@@ -20,6 +21,20 @@ TMPL_RPR = 'TemplateFact: f-1     (template-fact (int 1) (float 2.2) ' + \
            '(str "4") (symbol five) (multifield 1 2))'
 
 
+class TempFile:
+    """Cross-platform temporary file."""
+    name = None
+
+    def __enter__(self):
+        fobj, self.name = mkstemp()
+        os.close(fobj)
+
+        return self
+
+    def __exit__(self, *_):
+        os.remove(self.name)
+
+
 class TestFacts(unittest.TestCase):
     def setUp(self):
         self.env = Environment()
@@ -36,7 +51,7 @@ class TestFacts(unittest.TestCase):
         self.assertTrue('(two-facts)' in (str(f)
                                           for f in self.env.facts()))
 
-        with NamedTemporaryFile() as tmp:
+        with TempFile() as tmp:
             saved = self.env.save_facts(tmp.name)
             self.env.reset()
             loaded = self.env.load_facts(tmp.name)
@@ -46,7 +61,7 @@ class TestFacts(unittest.TestCase):
         """ImpliedFacts are asserted."""
         self.env.assert_string('(implied-fact)')
 
-        expected = [Symbol('implied-fact'), 1, 2.3, '4', Symbol('five')]
+        expected = (1, 2.3, '4', Symbol('five'))
         template = self.env.find_template('implied-fact')
         fact = template.new_fact()
 
@@ -58,17 +73,20 @@ class TestFacts(unittest.TestCase):
             if asserted_fact == fact:
                 break
 
-        self.assertEqual(asserted_fact[1], 1)
-        self.assertEqual(len(asserted_fact), 5)
+        self.assertEqual(asserted_fact[0], 1)
+        self.assertEqual(len(asserted_fact), 4)
         self.assertEqual(asserted_fact.index, 2)
-        self.assertEqual(list(asserted_fact), expected)
+        self.assertEqual(tuple(asserted_fact), expected)
         self.assertEqual(str(asserted_fact), IMPL_STR)
         self.assertEqual(repr(asserted_fact), IMPL_RPR)
 
     def test_template_fact(self):
         """TemplateFacts are asserted."""
-        expected = {'': 'template-fact', 'int': 1, 'float': 2.2,
-                    'str': '4', 'symbol': Symbol('five'), 'multifield': [1, 2]}
+        expected = {'int': 1,
+                    'float': 2.2,
+                    'str': '4',
+                    'symbol': Symbol('five'),
+                    'multifield': [1, 2]}
         template = self.env.find_template('template-fact')
         fact = template.new_fact()
 
@@ -82,7 +100,7 @@ class TestFacts(unittest.TestCase):
             if asserted_fact == fact:
                 break
 
-        self.assertEqual(len(asserted_fact), 6)
+        self.assertEqual(len(asserted_fact), 5)
         self.assertEqual(asserted_fact.index, 1)
         self.assertEqual(asserted_fact['int'], 1)
         self.assertEqual(dict(asserted_fact), expected)

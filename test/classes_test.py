@@ -1,5 +1,6 @@
+import os
 import unittest
-from tempfile import NamedTemporaryFile
+from tempfile import mkstemp
 
 from clips import Environment, Symbol
 from clips import CLIPSError, ClassDefaultMode, LoggingRouter
@@ -25,6 +26,20 @@ DEFCLASSES = [
       (+ ?self:One ?self:Two))
     """
 ]
+
+
+class TempFile:
+    """Cross-platform temporary file."""
+    name = None
+
+    def __enter__(self):
+        fobj, self.name = mkstemp()
+        os.close(fobj)
+
+        return self
+
+    def __exit__(self, *_):
+        os.remove(self.name)
 
 
 class TestClasses(unittest.TestCase):
@@ -64,19 +79,19 @@ class TestClasses(unittest.TestCase):
         self.assertFalse(self.env.instances_changed)
 
         # See: https://sourceforge.net/p/clipsrules/tickets/33/
-        # with NamedTemporaryFile(buffering=0, delete=False) as tmp:
+        # with TempFile() as tmp:
         #     saved = self.env.save_instances(tmp.name)
         #     self.env.reset()
         #     loaded = self.env.load_instances(tmp.name)
         #     self.assertEqual(saved, loaded)
 
-        with NamedTemporaryFile() as tmp:
+        with TempFile() as tmp:
             saved = self.env.save_instances(tmp.name)
             self.env.reset()
             loaded = self.env.restore_instances(tmp.name)
             self.assertEqual(saved, loaded)
 
-        with NamedTemporaryFile() as tmp:
+        with TempFile() as tmp:
             saved = self.env.save_instances(tmp.name, binary=True)
             self.env.reset()
             loaded = self.env.load_instances(tmp.name)
@@ -163,6 +178,7 @@ class TestClasses(unittest.TestCase):
         self.assertEqual(
             repr(instance),
             'Instance: [test-instance] of ConcreteClass (Slot value)')
+        self.assertEqual(dict(instance), {'Slot': Symbol('value')})
 
         instance.delete()
 

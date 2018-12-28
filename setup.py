@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2017, Matteo Cafasso
+# Copyright (c) 2016-2018, Matteo Cafasso
 # All rights reserved.
 
 # Redistribution and use in source and binary forms, with or without
@@ -49,7 +49,7 @@ def package_version():
 def read_version(path):
     try:
         return subprocess.check_output(('git', 'describe')).rstrip().decode()
-    except subprocess.CalledProcessError:
+    except Exception:
         with open(path) as version_file:
             version_string = version_file.read().split('=')[-1]
             return version_string.strip().replace('"', '')
