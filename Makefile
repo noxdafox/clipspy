@@ -23,7 +23,7 @@ clipspy: clips
 		--library-dirs $(CLIPS_SOURCE_DIR)
 
 test: clipspy
-	cp build/lib.*/clips/_clips.*.so clips
+	cp build/lib.*/clips/_clips*.so clips
 	LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(CLIPS_SOURCE_DIR)			\
 		$(PYTHON) -m pytest -v
 
