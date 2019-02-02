@@ -66,24 +66,23 @@ class TestClasses(unittest.TestCase):
 
         defclass = self.env.find_class('ConcreteClass')
 
-        defclass.new_instance('some-instance')
-        defclass.new_instance('test-instance')
+        defclass.make_instance('some-instance')
+        defclass.make_instance('test-instance')
 
         instance = self.env.find_instance('test-instance')
         self.assertTrue(instance in self.env.instances())
 
         with self.assertRaises(LookupError):
-            self.env.find_instance('NonExisting')
+            self.env.find_instance('non-existing-instance')
 
         self.assertTrue(self.env.instances_changed)
         self.assertFalse(self.env.instances_changed)
 
-        # See: https://sourceforge.net/p/clipsrules/tickets/33/
-        # with TempFile() as tmp:
-        #     saved = self.env.save_instances(tmp.name)
-        #     self.env.reset()
-        #     loaded = self.env.load_instances(tmp.name)
-        #     self.assertEqual(saved, loaded)
+        with TempFile() as tmp:
+            saved = self.env.save_instances(tmp.name)
+            self.env.reset()
+            loaded = self.env.load_instances(tmp.name)
+            self.assertEqual(saved, loaded)
 
         with TempFile() as tmp:
             saved = self.env.save_instances(tmp.name)
@@ -114,7 +113,7 @@ class TestClasses(unittest.TestCase):
         self.assertEqual(tuple(defclass.superclasses()), (superclass, ))
 
         with self.assertRaises(CLIPSError):
-            defclass.new_instance('foobar')
+            defclass.make_instance('foobar')
 
         defclass.undefine()
 
@@ -158,16 +157,15 @@ class TestClasses(unittest.TestCase):
                                        'EXC', 'PRV', 'RW', 'put-Slot'))
         self.assertEqual(slot.cardinality, ())
         self.assertEqual(slot.default_value, Symbol('nil'))
-        self.assertEqual(slot.allowed_values, ())
+        self.assertEqual(slot.allowed_values, Symbol('FALSE'))
         self.assertEqual(tuple(slot.allowed_classes()), ())
 
-    def test_instance(self):
+    def test_make_instance(self):
         """Instance test."""
         defclass = self.env.find_class('ConcreteClass')
 
-        defclass.new_instance('some-instance')
-        instance = defclass.new_instance('test-instance')
-        instance['Slot'] = Symbol('value')
+        defclass.make_instance('some-instance')
+        instance = defclass.make_instance('test-instance', Slot=Symbol('value'))
 
         self.assertTrue(instance in defclass.instances())
         self.assertEqual(instance.name, 'test-instance')
@@ -182,9 +180,27 @@ class TestClasses(unittest.TestCase):
 
         instance.delete()
 
-        instance = defclass.new_instance('test-instance')
+        with self.assertRaises(LookupError):
+            self.env.find_instance('test-instance')
+
+        instance = defclass.make_instance('test-instance')
 
         instance.unmake()
+
+        with self.assertRaises(LookupError):
+            self.env.find_instance('test-instance')
+
+    def test_modify_instance(self):
+        """Instance slot modification test."""
+        defclass = self.env.find_class('ConcreteClass')
+
+        defclass.make_instance('some-instance')
+        instance = defclass.make_instance('test-instance', Slot=Symbol('value'))
+        instance.modify_slots(Slot=Symbol('another-value'))
+
+        self.assertEqual(instance['Slot'], Symbol('another-value'))
+
+        instance.delete()
 
     def test_message_handler(self):
         """MessageHandler test."""
@@ -192,9 +208,8 @@ class TestClasses(unittest.TestCase):
 
         handler = defclass.find_message_handler('test-handler')
 
-        expected_str = """(defmessage-handler MAIN::MessageHandlerClass test-handler
-   ()
-   (+ ?self:One ?self:Two))"""
+        expected_str = "(defmessage-handler MAIN::MessageHandlerClass " + \
+            "test-handler () (+ ?self:One ?self:Two))"
 
         self.assertTrue(handler.deletable)
         self.assertEqual(handler.type, 'primary')
@@ -214,8 +229,6 @@ class TestClasses(unittest.TestCase):
         """MessageHandler instance test."""
         defclass = self.env.find_class('MessageHandlerClass')
 
-        instance = defclass.new_instance('test-instance')
-        instance['One'] = 1
-        instance['Two'] = 2
+        instance = defclass.make_instance('test-instance', One=1, Two=2)
 
         self.assertEqual(instance.send('test-handler'), 3)

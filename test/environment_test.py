@@ -77,23 +77,19 @@ class TestEnvironment(unittest.TestCase):
 
     def python_fact_method(self):
         """Returns a list with one fact."""
-        template = self.env.find_template('test-fact')
-        fact = template.new_fact()
-        fact.append(5)
-
-        return [fact]
+        return [self.env.assert_string('(test-fact 5)')]
 
     def test_eval_python_function(self):
         """Python function is evaluated correctly."""
-        expected = [0, 1.1, "2", Symbol('three')]
+        expected = (0, 1.1, "2", Symbol('three'))
         ret = self.env.eval('(python_function 0 1.1 "2" three)')
         self.assertEqual(ret, expected)
 
-        expected = [0, 1.1, "2", Symbol('three')]
+        expected = (0, 1.1, "2", Symbol('three'))
         ret = self.env.eval('(python-function-renamed 0 1.1 "2" three)')
         self.assertEqual(ret, expected)
 
-        expected = [Symbol('nil'), Symbol('TRUE'), Symbol('FALSE')]
+        expected = (Symbol('nil'), Symbol('TRUE'), Symbol('FALSE'))
         ret = self.env.eval('(python_types)')
         self.assertEqual(ret, expected)
 
@@ -102,8 +98,6 @@ class TestEnvironment(unittest.TestCase):
         expected = [0, 1.1, "2", Symbol('three')]
 
         ret = self.env.eval('(python_method 0 1.1 "2" three)')
-
-        print(self.values)
 
         self.assertEqual(ret, Symbol('nil'))
         self.assertEqual(self.values, expected)
@@ -117,8 +111,8 @@ class TestEnvironment(unittest.TestCase):
 
     def test_rule_python_instance(self):
         """Instances are forwarded to Python """
-        cl = self.env.find_class('TEST')
-        inst = cl.new_instance('test')
+        defclass = self.env.find_class('TEST')
+        inst = defclass.make_instance('test')
         self.env.run()
 
         self.assertEqual(self.values[0], inst)
@@ -155,7 +149,7 @@ class TestEnvironment(unittest.TestCase):
         with TempFile() as tmp:
             self.env.save(tmp.name, binary=True)
             self.env.clear()
-            self.env.load(tmp.name)
+            self.env.load(tmp.name, binary=True)
 
             self.assertTrue('fact-rule' in
                             (r.name for r in self.env.rules()))

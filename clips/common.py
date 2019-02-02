@@ -27,24 +27,25 @@
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import sys
-
 from enum import IntEnum
 from collections import namedtuple
+
+from clips.router import ErrorRouter
 
 from clips._clips import lib, ffi
 
 
-if sys.version_info.major == 3:
-    class Symbol(str):
-        """Python equivalent of a CLIPS SYMBOL."""
-        def __new__(cls, symbol):
-            return str.__new__(cls, sys.intern(symbol))
-elif sys.version_info.major == 2:
-    class Symbol(str):
-        """Python equivalent of a CLIPS SYMBOL."""
-        def __new__(cls, symbol):
-            return str.__new__(cls, intern(str(symbol)))
+class CLIPSError(RuntimeError):
+    """An error occurred within the CLIPS Environment."""
+
+    def __init__(self, env: ffi.CData, code: int = None):
+        routers = environment_data(env, 'routers')
+        message = routers['python-error-router'].last_message
+        message = message.lstrip('\n').rstrip('\n').replace('\n', ' ')
+
+        super(CLIPSError, self).__init__(message)
+
+        self.code = code
 
 
 class CLIPSType(IntEnum):
@@ -57,11 +58,12 @@ class CLIPSType(IntEnum):
     FACT_ADDRESS = 6
     INSTANCE_ADDRESS = 7
     INSTANCE_NAME = 8
+    VOID = 9
 
 
 class SaveMode(IntEnum):
-    LOCAL_SAVE = 0
-    VISIBLE_SAVE = 1
+    LOCAL_SAVE = lib.LOCAL_SAVE
+    VISIBLE_SAVE = lib.VISIBLE_SAVE
 
 
 class ClassDefaultMode(IntEnum):
@@ -80,9 +82,9 @@ class Strategy(IntEnum):
 
 
 class SalienceEvaluation(IntEnum):
-    WHEN_DEFINED = 0
-    WHEN_ACTIVATED = 1
-    EVERY_CYCLE = 2
+    WHEN_DEFINED = lib.WHEN_DEFINED
+    WHEN_ACTIVATED = lib.WHEN_ACTIVATED
+    EVERY_CYCLE = lib.EVERY_CYCLE
 
 
 class Verbosity(IntEnum):
@@ -92,11 +94,87 @@ class Verbosity(IntEnum):
 
 
 class TemplateSlotDefaultType(IntEnum):
-    NO_DEFAULT = 0
-    STATIC_DEFAULT = 1
-    DYNAMIC_DEFAULT = 2
+    NO_DEFAULT = lib.NO_DEFAULT
+    STATIC_DEFAULT = lib.STATIC_DEFAULT
+    DYNAMIC_DEFAULT = lib.DYNAMIC_DEFAULT
 
 
-# Assign functions and error routers per Environment
+def initialize_environment_data(environment):
+    env = environment._env
+
+    fact = lib.CreateFactBuilder(env, ffi.NULL)
+    if fact is ffi.NULL:
+        raise CLIPSError(env, code=lib.FBError(env))
+    instance = lib.CreateInstanceBuilder(env, ffi.NULL)
+    if fact is ffi.NULL:
+        raise CLIPSError(env, code=lib.FBError(env))
+    function = lib.CreateFunctionCallBuilder(env, 0)
+    if fact is ffi.NULL:
+        raise CLIPSError(env, code=lib.FBError(env))
+    multifield = lib.CreateMultifieldBuilder(env, 0)
+    if multifield is ffi.NULL:
+        raise CLIPSError(env)
+    string = lib.CreateStringBuilder(env, 0)
+    if string is ffi.NULL:
+        raise CLIPSError(env)
+    builders = EnvBuilders(fact, instance, function, string, multifield)
+
+    fact = lib.CreateFactModifier(env, ffi.NULL)
+    if fact is ffi.NULL:
+        raise CLIPSError(env, code=lib.FMError(env))
+    instance = lib.CreateInstanceModifier(env, ffi.NULL)
+    if instance is ffi.NULL:
+        raise CLIPSError(env, code=lib.FMError(env))
+    modifiers = EnvModifiers(fact, instance)
+
+    ENVIRONMENT_DATA[env] = EnvData(builders, modifiers, {}, {})
+
+    error_router = ErrorRouter()
+    error_router.add_to_environment(environment)
+
+    lib.DefinePythonFunction(env)
+
+    return ENVIRONMENT_DATA[env]
+
+
+def delete_environment_data(env):
+    data = ENVIRONMENT_DATA.pop(env, None)
+
+    if data is not None:
+        fact, instance, function, string, multifield = data.builders
+
+        lib.FBDispose(fact)
+        lib.IBDispose(instance)
+        lib.FCBDispose(function)
+        lib.SBDispose(string)
+        lib.MBDispose(multifield)
+
+        fact, instance = data.modifiers
+        lib.FMDispose(fact)
+        lib.IMDispose(instance)
+
+
+def environment_data(env, name) -> type:
+    return getattr(ENVIRONMENT_DATA[env], name)
+
+
+def environment_builder(env, name) -> ffi.CData:
+    return getattr(ENVIRONMENT_DATA[env].builders, name)
+
+
+def environment_modifier(env, name) -> ffi.CData:
+    return getattr(ENVIRONMENT_DATA[env].modifiers, name)
+
+
 ENVIRONMENT_DATA = {}
-EnvData = namedtuple('EnvData', ('user_functions', 'error_router'))
+EnvData = namedtuple('EnvData', ('builders',
+                                 'modifiers',
+                                 'routers',
+                                 'user_functions'))
+EnvBuilders = namedtuple('EnvData', ('fact',
+                                     'instance',
+                                     'function',
+                                     'string',
+                                     'multifield'))
+EnvModifiers = namedtuple('EnvData', ('fact',
+                                      'instance'))

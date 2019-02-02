@@ -58,8 +58,8 @@ class TestAgenda(unittest.TestCase):
 
         self.assertEqual(activation.name, 'rule-name')
         self.assertEqual(activation.salience, 10)
-        self.assertEqual(str(activation), '10     rule-name: f-1')
-        self.assertEqual(repr(activation), 'Activation: 10     rule-name: f-1')
+        self.assertEqual(str(activation), '10 rule-name: f-1')
+        self.assertEqual(repr(activation), 'Activation: 10 rule-name: f-1')
 
         activation.delete()
 
@@ -87,6 +87,8 @@ class TestAgenda(unittest.TestCase):
                          (u'other-rule-name', u'rule-name'))
 
         activations[1].salience = 30
+
+        self.assertEqual(activations[1].salience, 30)
 
         self.assertFalse(self.env.agenda_changed)
 
@@ -123,8 +125,9 @@ class TestRules(unittest.TestCase):
         self.assertTrue(rule in self.env.rules())
         self.assertEqual(rule.module.name, 'MAIN')
         self.assertTrue(rule.deletable)
-        self.assertEqual(str(rule), DEFTEMPLATERULE)
-        self.assertEqual(repr(rule), "Rule: %s" % DEFTEMPLATERULE)
+        self.assertEqual(str(rule), ' '.join(DEFTEMPLATERULE.split()))
+        self.assertEqual(repr(rule),
+                         "Rule: %s" % ' '.join(DEFTEMPLATERULE.split()))
         self.assertFalse(rule.watch_firings)
         rule.watch_firings = True
         self.assertTrue(rule.watch_firings)

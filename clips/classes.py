@@ -34,6 +34,7 @@
   * Instance class
   * ClassSlot class
   * MessageHandler class
+  * DefinedInstances class
 
 """
 
@@ -42,164 +43,124 @@ import os
 import clips
 
 from clips.modules import Module
-from clips.error import CLIPSError
-from clips.common import SaveMode, ClassDefaultMode, CLIPSType
+from clips.common import CLIPSError, SaveMode, ClassDefaultMode
+from clips.common import environment_builder, environment_modifier
 
 from clips._clips import lib, ffi
 
 
-class Classes:
-    """Classes and Instances namespace class.
+class Instance:
+    """A Class Instance is an occurrence of an object.
 
-    .. note::
+    A Class Instance represents its data as a dictionary
+    where each slot name is a key.
 
-       All the Classes methods are accessible through the Environment class.
+    Class Instance slot values can be modified.
+    The Instance will be re-evaluated against the rule network once modified.
 
     """
 
-    __slots__ = '_env'
+    __slots__ = '_env', '_ist'
 
-    def __init__(self, env):
+    def __init__(self, env: ffi.CData, ist: ffi.CData):
         self._env = env
+        self._ist = ist
+        lib.RetainInstance(self._ist)
+
+    def __del__(self):
+        try:
+            lib.ReleaseInstance(self._ist)
+        except (AttributeError, TypeError):
+            pass  # mostly happening during interpreter shutdown
+
+    def __hash__(self):
+        return hash(self._ist)
+
+    def __eq__(self, ist):
+        return self._ist == ist._ist
+
+    def __str__(self):
+        return ' '.join(instance_pp_string(self._env, self._ist).split())
+
+    def __repr__(self):
+        string = ' '.join(instance_pp_string(self._env, self._ist).split())
+
+        return "%s: %s" % (self.__class__.__name__, string)
+
+    def __iter__(self):
+        slot_names = (s.name for s in self.instance_class.slots())
+
+        return ((n, slot_value(self._env, self._ist, n)) for n in slot_names)
+
+    def __getitem__(self, slot):
+        return slot_value(self._env, self._ist, slot)
 
     @property
-    def default_mode(self):
-        """Return the current class defaults mode.
-
-        The Python equivalent of the CLIPS get-class-defaults-mode command.
-
-        """
-        return ClassDefaultMode(lib.EnvGetClassDefaultsMode(self._env))
-
-    @default_mode.setter
-    def default_mode(self, value):
-        """Return the current class defaults mode.
-
-        The Python equivalent of the CLIPS get-class-defaults-mode command.
-
-        """
-        lib.EnvSetClassDefaultsMode(self._env, value)
+    def name(self) -> str:
+        """Instance name."""
+        return ffi.string(lib.InstanceName(self._ist)).decode()
 
     @property
-    def instances_changed(self):
-        """True if any instance has changed."""
-        value = bool(lib.EnvGetInstancesChanged(self._env))
-        lib.EnvSetInstancesChanged(self._env, int(False))
+    def instance_class(self) -> 'Class':
+        """Instance class."""
+        return Class(self._env, lib.InstanceClass(self._ist))
 
-        return value
+    def modify_slots(self, **slots):
+        """Modify one or more slot values of the Instance.
 
-    def classes(self):
-        """Iterate over the defined Classes."""
-        defclass = lib.EnvGetNextDefclass(self._env, ffi.NULL)
+        Instance must exist within the CLIPS engine.
 
-        while defclass != ffi.NULL:
-            yield Class(self._env, defclass)
-
-            defclass = lib.EnvGetNextDefclass(self._env, defclass)
-
-    def find_class(self, name):
-        """Find the Class by its name."""
-        defclass = lib.EnvFindDefclass(self._env, name.encode())
-        if defclass == ffi.NULL:
-            raise LookupError("Class '%s' not found" % name)
-
-        return Class(self._env, defclass)
-
-    def instances(self):
-        """Iterate over the defined Instancees."""
-        definstance = lib.EnvGetNextInstance(self._env, ffi.NULL)
-
-        while definstance != ffi.NULL:
-            yield Instance(self._env, definstance)
-
-            definstance = lib.EnvGetNextInstance(self._env, definstance)
-
-    def find_instance(self, name, module=None):
-        """Find the Instance by its name."""
-        module = module if module is not None else ffi.NULL
-        definstance = lib.EnvFindInstance(self._env, module, name.encode(), 1)
-        if definstance == ffi.NULL:
-            raise LookupError("Instance '%s' not found" % name)
-
-        return Instance(self._env, definstance)
-
-    def load_instances(self, instances):
-        """Load a set of instances into the CLIPS data base.
-
-        The C equivalent of the CLIPS load-instances command.
-
-        Instances can be loaded from a string,
-        from a file or from a binary file.
+        Equivalent to the CLIPS (modify-instance) function.
 
         """
-        instances = instances.encode()
+        modifier = environment_modifier(self._env, 'instance')
+        ret = lib.IMSetInstance(modifier, self._ist)
+        if ret != lib.IME_NO_ERROR:
+            raise CLIPSError(self._env, code=ret)
 
-        if os.path.exists(instances):
-            try:
-                return self._load_instances_binary(instances)
-            except CLIPSError:
-                return self._load_instances_text(instances)
-        else:
-            return self._load_instances_string(instances)
+        for slot, slot_val in slots.items():
+            value = clips.values.clips_value(self._env, value=slot_val)
 
-    def _load_instances_binary(self, instances):
-        ret = lib.EnvBinaryLoadInstances(self._env, instances)
-        if ret == -1:
-            raise CLIPSError(self._env)
+            ret = lib.IMPutSlot(modifier, str(slot).encode(), value)
+            if ret != lib.PSE_NO_ERROR:
+                if ret == lib.PSE_SLOT_NOT_FOUND_ERROR:
+                    raise KeyError("'%s'" % slot)
+                else:
+                    raise CLIPSError(self._env, code=ret)
 
-        return ret
+        if lib.IMModify(modifier) is ffi.NULL:
+            raise CLIPSError(self._env, code=lib.IMError(self._env))
 
-    def _load_instances_text(self, instances):
-        ret = lib.EnvLoadInstances(self._env, instances)
-        if ret == -1:
-            raise CLIPSError(self._env)
+    def send(self, message: str, arguments: str = None) -> type:
+        """Send a message to the Instance.
 
-        return ret
+        The output value of the message handler is returned.
 
-    def _load_instances_string(self, instances):
-        ret = lib.EnvLoadInstancesFromString(self._env, instances, -1)
-        if ret == -1:
-            raise CLIPSError(self._env)
-
-        return ret
-
-    def restore_instances(self, instances):
-        """Restore a set of instances into the CLIPS data base.
-
-        The Python equivalent of the CLIPS restore-instances command.
-
-        Instances can be passed as a set of strings or as a file.
+        Equivalent to the CLIPS (send) function.
 
         """
-        instances = instances.encode()
+        output = clips.values.clips_value(self._env)
+        instance = clips.values.clips_value(self._env, value=self)
 
-        if os.path.exists(instances):
-            ret = lib.EnvRestoreInstances(self._env, instances)
-            if ret == -1:
-                raise CLIPSError(self._env)
-        else:
-            ret = lib.EnvRestoreInstancesFromString(self._env, instances, -1)
-            if ret == -1:
-                raise CLIPSError(self._env)
+        args = arguments.encode() if arguments is not None else ffi.NULL
+        lib.Send(self._env, instance, message.encode(), args, output)
 
-        return ret
+        return clips.values.python_value(self._env, output)
 
-    def save_instances(self, path, binary=False, mode=SaveMode.LOCAL_SAVE):
-        """Save the instances in the system to the specified file.
+    def delete(self):
+        """Directly delete the instance."""
+        ret = lib.DeleteInstance(self._ist)
+        if ret != lib.UIE_NO_ERROR:
+            raise CLIPSError(self._env, code=ret)
 
-        If binary is True, the instances will be saved in binary format.
-
-        The Python equivalent of the CLIPS save-instances command.
+    def unmake(self):
+        """This method is equivalent to delete except that it uses
+        message-passing instead of directly deleting the instance.
 
         """
-        if binary:
-            ret = lib.EnvBinarySaveInstances(self._env, path.encode(), mode)
-        else:
-            ret = lib.EnvSaveInstances(self._env, path.encode(), mode)
-        if ret == 0:
-            raise CLIPSError(self._env)
-
-        return ret
+        ret = lib.UnmakeInstance(self._ist)
+        if ret != lib.UIE_NO_ERROR:
+            raise CLIPSError(self._env, code=ret)
 
 
 class Class:
@@ -214,7 +175,7 @@ class Class:
 
     __slots__ = '_env', '_cls'
 
-    def __init__(self, env, cls):
+    def __init__(self, env: ffi.CData, cls: ffi.CData):
         self._env = env
         self._cls = cls
 
@@ -225,161 +186,180 @@ class Class:
         return self._cls == cls._cls
 
     def __str__(self):
-        strn = lib.EnvGetDefclassPPForm(self._env, self._cls)
-        strn = ffi.string(strn).decode() if strn != ffi.NULL else self.name
+        string = lib.DefclassPPForm(self._cls)
+        string = ffi.string(string).decode() if string != ffi.NULL else ''
 
-        return strn.rstrip('\n')
+        return ' '.join(string.split())
 
     def __repr__(self):
-        strn = lib.EnvGetDefclassPPForm(self._env, self._cls)
-        strn = ffi.string(strn).decode() if strn != ffi.NULL else self.name
+        string = lib.DefclassPPForm(self._cls)
+        string = ffi.string(string).decode() if string != ffi.NULL else ''
 
-        return "%s: %s" % (self.__class__.__name__, strn.rstrip('\n'))
+        return "%s: %s" % (self.__class__.__name__, ' '.join(string.split()))
 
     @property
-    def abstract(self):
+    def abstract(self) -> bool:
         """True if the class is abstract."""
-        return bool(lib.EnvClassAbstractP(self._env, self._cls))
+        return lib.ClassAbstractP(self._cls)
 
     @property
-    def reactive(self):
+    def reactive(self) -> bool:
         """True if the class is reactive."""
-        return bool(lib.EnvClassReactiveP(self._env, self._cls))
+        return lib.ClassReactiveP(self._cls)
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Class name."""
-        return ffi.string(lib.EnvGetDefclassName(self._env, self._cls)).decode()
+        return ffi.string(lib.DefclassName(self._cls)).decode()
 
     @property
-    def module(self):
+    def module(self) -> Module:
         """The module in which the Class is defined.
 
-        Python equivalent of the CLIPS defglobal-module command.
+        Equivalent to the CLIPS (defclass-module) function.
 
         """
-        modname = ffi.string(lib.EnvDefclassModule(self._env, self._cls))
-        defmodule = lib.EnvFindDefmodule(self._env, modname)
+        modname = ffi.string(lib.DefclassModule(self._cls))
 
-        return Module(self._env, defmodule)
+        return Module(self._env, lib.FindDefmodule(self._env, modname))
 
     @property
-    def deletable(self):
+    def deletable(self) -> bool:
         """True if the Class can be deleted."""
-        return bool(lib.EnvIsDefclassDeletable(self._env, self._cls))
+        return lib.DefclassIsDeletable(self._cls)
 
     @property
-    def watch_instances(self):
+    def watch_instances(self) -> bool:
         """Whether or not the Class Instances are being watched."""
-        return bool(lib.EnvGetDefclassWatchInstances(self._env, self._cls))
+        return lib.DefclassGetWatchInstances(self._cls)
 
     @watch_instances.setter
-    def watch_instances(self, flag):
+    def watch_instances(self, flag: bool):
         """Whether or not the Class Instances are being watched."""
-        lib.EnvSetDefclassWatchInstances(self._env, int(flag), self._cls)
+        lib.DefclassSetWatchInstances(self._cls, flag)
 
     @property
-    def watch_slots(self):
+    def watch_slots(self) -> bool:
         """Whether or not the Class Slots are being watched."""
-        return bool(lib.EnvGetDefclassWatchSlots(self._env, self._cls))
+        return lib.DefclassGetWatchSlots(self._cls)
 
     @watch_slots.setter
-    def watch_slots(self, flag):
+    def watch_slots(self, flag: bool):
         """Whether or not the Class Slots are being watched."""
-        lib.EnvSetDefclassWatchSlots(self._env, int(flag), self._cls)
+        lib.DefclassSetWatchSlots(self._cls, flag)
 
-    def new_instance(self, name):
-        """Create a new raw instance from this Class."""
-        ist = lib.EnvCreateRawInstance(self._env, self._cls, name.encode())
-        if ist == ffi.NULL:
-            raise CLIPSError(self._env)
+    def make_instance(self, name: str, **slots) -> Instance:
+        """Make a new Instance from this Class.
 
-        return Instance(self._env, ist)
+        Equivalent to the CLIPS (make-instance) function.
 
-    def find_message_handler(self, handler_name, handler_type='primary'):
-        """Returns the MessageHandler given its name and type for this class."""
-        ret = lib.EnvFindDefmessageHandler(
-            self._env, self._cls, handler_name.encode(), handler_type.encode())
+        """
+        builder = environment_builder(self._env, 'instance')
+        ret = lib.IBSetDefclass(builder, lib.DefclassName(self._cls))
+        if ret != lib.IBE_NO_ERROR:
+            raise CLIPSError(self._env, code=ret)
+
+        for slot, slot_val in slots.items():
+            value = clips.values.clips_value(self._env, value=slot_val)
+
+            ret = lib.IBPutSlot(builder, str(slot).encode(), value)
+            if ret != lib.PSE_NO_ERROR:
+                if ret == lib.PSE_SLOT_NOT_FOUND_ERROR:
+                    raise KeyError("'%s'" % slot)
+                else:
+                    raise CLIPSError(self._env, code=ret)
+
+        instance = lib.IBMake(builder, name.encode())
+        if instance != ffi.NULL:
+            return Instance(self._env, instance)
+        else:
+            raise CLIPSError(self._env, code=lib.FBError(self._env))
+
+    def subclass(self, defclass: 'Class') -> bool:
+        """True if the Class is a subclass of the given one."""
+        return lib.SubclassP(self._cls, defclass._cls)
+
+    def superclass(self, defclass: 'Class') -> bool:
+        """True if the Class is a superclass of the given one."""
+        return lib.SuperclassP(self._cls, defclass._cls)
+
+    def slots(self, inherited: bool = False) -> iter:
+        """Iterate over the Slots of the class."""
+        value = clips.values.clips_value(self._env)
+
+        lib.ClassSlots(self._cls, value, inherited)
+
+        return (ClassSlot(self._env, self._cls, n.encode())
+                for n in clips.values.python_value(self._env, value))
+
+    def instances(self) -> iter:
+        """Iterate over the instances of the class."""
+        ist = lib.GetNextInstanceInClass(self._cls, ffi.NULL)
+
+        while ist != ffi.NULL:
+            yield Instance(self._env, ist)
+
+            ist = lib.GetNextInstanceInClass(self._cls, ist)
+
+    def subclasses(self, inherited: bool = False) -> iter:
+        """Iterate over the subclasses of the class.
+
+        Equivalent to the CLIPS (class-subclasses) function.
+
+        """
+        value = clips.values.clips_value(self._env)
+
+        lib.ClassSubclasses(self._cls, value, inherited)
+
+        for defclass in classes(
+                self._env, clips.values.python_value(self._env, value)):
+            yield defclass
+
+    def superclasses(self, inherited=False) -> iter:
+        """Iterate over the superclasses of the class.
+
+        Equivalent to the CLIPS class-superclasses command.
+
+        """
+        value = clips.values.clips_value(self._env)
+
+        lib.ClassSuperclasses(self._cls, value, int(inherited))
+
+        for defclass in classes(
+                self._env, clips.values.python_value(self._env, value)):
+            yield defclass
+
+    def message_handlers(self) -> iter:
+        """Iterate over the message handlers of the class."""
+        index = lib.GetNextDefmessageHandler(self._cls, 0)
+
+        while index != 0:
+            yield MessageHandler(self._env, self._cls, index)
+
+            index = lib.GetNextDefmessageHandler(self._cls, index)
+
+    def find_message_handler(
+            self, name: str, handler_type: str = 'primary') -> 'MessageHandler':
+        """Returns the MessageHandler given its name and type."""
+        ret = lib.FindDefmessageHandler(
+            self._cls, name.encode(), handler_type.encode())
         if ret == 0:
             raise CLIPSError(self._env)
 
         return MessageHandler(self._env, self._cls, ret)
 
-    def subclass(self, klass):
-        """True if the Class is a subclass of the given one."""
-        return bool(lib.EnvSubclassP(self._env, self._cls, klass._cls))
-
-    def superclass(self, klass):
-        """True if the Class is a superclass of the given one."""
-        return bool(lib.EnvSuperclassP(self._env, self._cls, klass._cls))
-
-    def slots(self, inherited=False):
-        """Iterate over the Slots of the class."""
-        data = clips.data.DataObject(self._env)
-
-        lib.EnvClassSlots(self._env, self._cls, data.byref, int(inherited))
-
-        return (ClassSlot(self._env, self._cls, n.encode()) for n in data.value)
-
-    def instances(self):
-        """Iterate over the instances of the class."""
-        ist = lib.EnvGetNextInstanceInClass(self._env, self._cls, ffi.NULL)
-
-        while ist != ffi.NULL:
-            yield Instance(self._env, ist)
-
-            ist = lib.EnvGetNextInstanceInClass(self._env, self._cls, ist)
-
-    def subclasses(self, inherited=False):
-        """Iterate over the subclasses of the class.
-
-        This function is the Python equivalent
-        of the CLIPS class-subclasses command.
-
-        """
-        data = clips.data.DataObject(self._env)
-
-        lib.EnvClassSubclasses(self._env, self._cls, data.byref, int(inherited))
-
-        for klass in classes(self._env, data.value):
-            yield klass
-
-    def superclasses(self, inherited=False):
-        """Iterate over the superclasses of the class.
-
-        This function is the Python equivalent
-        of the CLIPS class-superclasses command.
-
-        """
-        data = clips.data.DataObject(self._env)
-
-        lib.EnvClassSuperclasses(
-            self._env, self._cls, data.byref, int(inherited))
-
-        for klass in classes(self._env, data.value):
-            yield klass
-
-    def message_handlers(self):
-        """Iterate over the message handlers of the class."""
-        index = lib.EnvGetNextDefmessageHandler(self._env, self._cls, 0)
-
-        while index != 0:
-            yield MessageHandler(self._env, self._cls, index)
-
-            index = lib.EnvGetNextDefmessageHandler(self._env, self._cls, index)
-
     def undefine(self):
         """Undefine the Class.
 
-        Python equivalent of the CLIPS undefclass command.
+        Equivalent to the CLIPS (undefclass) command.
 
         The object becomes unusable after this method has been called.
 
         """
-        if lib.EnvUndefclass(self._env, self._cls) != 1:
+        if not lib.Undefclass(self._cls, self._env):
             raise CLIPSError(self._env)
 
-        self._env = None
+        self._env = self._cls = None
 
 
 class ClassSlot:
@@ -391,7 +371,7 @@ class ClassSlot:
 
     __slots__ = '_env', '_cls', '_name'
 
-    def __init__(self, env, cls, name):
+    def __init__(self, env: ffi.CData, cls: ffi.CData, name: str):
         self._env = env
         self._cls = cls
         self._name = name
@@ -414,231 +394,136 @@ class ClassSlot:
         return self._name.decode()
 
     @property
-    def public(self):
+    def public(self) -> bool:
         """True if the Slot is public."""
-        return bool(lib.EnvSlotPublicP(self._env, self._cls, self._name))
+        return lib.SlotPublicP(self._cls, self._name)
 
     @property
-    def initializable(self):
+    def initializable(self) -> bool:
         """True if the Slot is initializable."""
-        return bool(lib.EnvSlotInitableP(self._env, self._cls, self._name))
+        return lib.SlotInitableP(self._cls, self._name)
 
     @property
-    def writable(self):
+    def writable(self) -> bool:
         """True if the Slot is writable."""
-        return bool(lib.EnvSlotWritableP(self._env, self._cls, self._name))
+        return lib.SlotWritableP(self._cls, self._name)
 
     @property
-    def accessible(self):
+    def accessible(self) -> bool:
         """True if the Slot is directly accessible."""
-        return bool(lib.EnvSlotDirectAccessP(self._env, self._cls, self._name))
+        return lib.SlotDirectAccessP(self._cls, self._name)
 
     @property
-    def types(self):
+    def types(self) -> tuple:
         """A tuple containing the value types for this Slot.
 
-        The Python equivalent of the CLIPS slot-types function.
+        Equivalent to the CLIPS (slot-types) function.
 
         """
-        data = clips.data.DataObject(self._env)
+        value = clips.values.clips_value(self._env)
 
-        lib.EnvSlotTypes(self._env, self._cls, self._name, data.byref)
-
-        return tuple(data.value) if isinstance(data.value, list) else ()
+        if lib.SlotTypes(self._cls, self._name, value):
+            return clips.values.python_value(self._env, value)
+        else:
+            raise CLIPSError(self._env)
 
     @property
-    def sources(self):
+    def sources(self) -> tuple:
         """A tuple containing the names of the Class sources for this Slot.
 
-        The Python equivalent of the CLIPS slot-sources function.
+        Equivalent to the CLIPS (slot-sources) function.
 
         """
-        data = clips.data.DataObject(self._env)
+        value = clips.values.clips_value(self._env)
 
-        lib.EnvSlotSources(self._env, self._cls, self._name, data.byref)
-
-        return tuple(data.value) if isinstance(data.value, list) else ()
+        if lib.SlotSources(self._cls, self._name, value):
+            return clips.values.python_value(self._env, value)
+        else:
+            raise CLIPSError(self._env)
 
     @property
-    def range(self):
+    def range(self) -> tuple:
         """A tuple containing the numeric range for this Slot.
 
-        The Python equivalent of the CLIPS slot-range function.
+        Equivalent to the CLIPS (slot-range) function.
 
         """
-        data = clips.data.DataObject(self._env)
+        value = clips.values.clips_value(self._env)
 
-        lib.EnvSlotRange(self._env, self._cls, self._name, data.byref)
-
-        return tuple(data.value) if isinstance(data.value, list) else ()
+        if lib.SlotRange(self._cls, self._name, value):
+            return clips.values.python_value(self._env, value)
+        else:
+            raise CLIPSError(self._env)
 
     @property
-    def facets(self):
+    def facets(self) -> tuple:
         """A tuple containing the facets for this Slot.
 
-        The Python equivalent of the CLIPS slot-facets function.
+        Equivalent to the CLIPS (slot-facets) function.
 
         """
-        data = clips.data.DataObject(self._env)
+        value = clips.values.clips_value(self._env)
 
-        lib.EnvSlotFacets(self._env, self._cls, self._name, data.byref)
-
-        return tuple(data.value) if isinstance(data.value, list) else ()
+        if lib.SlotFacets(self._cls, self._name, value):
+            return clips.values.python_value(self._env, value)
+        else:
+            raise CLIPSError(self._env)
 
     @property
-    def cardinality(self):
+    def cardinality(self) -> tuple:
         """A tuple containing the cardinality for this Slot.
 
-        The Python equivalent of the CLIPS slot-cardinality function.
+        Equivalent to the CLIPS slot-cardinality function.
 
         """
-        data = clips.data.DataObject(self._env)
+        value = clips.values.clips_value(self._env)
 
-        lib.EnvSlotCardinality(
-            self._env, self._cls, self._name, data.byref)
-
-        return tuple(data.value) if isinstance(data.value, list) else ()
+        if lib.SlotCardinality(self._cls, self._name, value):
+            return clips.values.python_value(self._env, value)
+        else:
+            raise CLIPSError(self._env)
 
     @property
-    def default_value(self):
+    def default_value(self) -> type:
         """The default value for this Slot.
 
-        The Python equivalent of the CLIPS slot-default-value function.
+        Equivalent to the CLIPS (slot-default-value) function.
 
         """
-        data = clips.data.DataObject(self._env)
+        value = clips.values.clips_value(self._env)
 
-        lib.EnvSlotDefaultValue(
-            self._env, self._cls, self._name, data.byref)
-
-        return data.value
+        if lib.SlotDefaultValue(self._cls, self._name, value):
+            return clips.values.python_value(self._env, value)
+        else:
+            raise CLIPSError(self._env)
 
     @property
-    def allowed_values(self):
+    def allowed_values(self) -> tuple:
         """A tuple containing the allowed values for this Slot.
 
-        The Python equivalent of the CLIPS slot-allowed-values function.
+        Equivalent to the CLIPS (slot-allowed-values) function.
 
         """
-        data = clips.data.DataObject(self._env)
+        value = clips.values.clips_value(self._env)
 
-        lib.EnvSlotAllowedValues(
-            self._env, self._cls, self._name, data.byref)
+        if lib.SlotAllowedValues(self._cls, self._name, value):
+            return clips.values.python_value(self._env, value)
+        else:
+            raise CLIPSError(self._env)
 
-        return tuple(data.value) if isinstance(data.value, list) else ()
-
-    def allowed_classes(self):
+    def allowed_classes(self) -> iter:
         """Iterate over the allowed classes for this slot.
 
-        The Python equivalent of the CLIPS slot-allowed-classes function.
+        Equivalent to the CLIPS (slot-allowed-classes) function.
 
         """
-        data = clips.data.DataObject(self._env)
+        value = clips.values.clips_value(self._env)
 
-        lib.EnvSlotAllowedClasses(
-            self._env, self._cls, self._name, data.byref)
+        lib.SlotAllowedClasses(self._cls, self._name, value)
 
-        if isinstance(data.value, list):
-            for klass in classes(self._env, data.value):
-                yield klass
-
-
-class Instance:
-    """A Class Instance is an occurrence of an object.
-
-    Instances represent the data as dictionaries where each slot is a key.
-
-    """
-
-    __slots__ = '_env', '_ist'
-
-    def __init__(self, env, ist):
-        self._env = env
-        self._ist = ist
-        lib.EnvIncrementInstanceCount(self._env, self._ist)
-
-    def __del__(self):
-        try:
-            lib.EnvDecrementInstanceCount(self._env, self._ist)
-        except (AttributeError, TypeError):
-            pass  # mostly happening during interpreter shutdown
-
-    def __hash__(self):
-        return hash(self._ist)
-
-    def __eq__(self, ist):
-        return self._ist == ist._ist
-
-    def __str__(self):
-        return instance_pp_string(self._env, self._ist)
-
-    def __repr__(self):
-        return "%s: %s" % (
-            self.__class__.__name__, instance_pp_string(self._env, self._ist))
-
-    def __iter__(self):
-        slot_names = (s.name for s in self.instance_class.slots())
-
-        return ((n, self._slot_value(n)) for n in slot_names)
-
-    def __getitem__(self, slot):
-        return self._slot_value(slot)
-
-    def __setitem__(self, slot, value):
-        data = clips.data.DataObject(self._env)
-        data.value = value
-
-        if lib.EnvDirectPutSlot(
-                self._env, self._ist, slot.encode(), data.byref) == 0:
-            raise CLIPSError(self._env)
-
-    def _slot_value(self, slot):
-        data = clips.data.DataObject(self._env)
-
-        lib.EnvDirectGetSlot(self._env, self._ist, slot.encode(), data.byref)
-
-        return data.value
-
-    @property
-    def name(self):
-        """Instance name."""
-        return ffi.string(lib.EnvGetInstanceName(self._env, self._ist)).decode()
-
-    @property
-    def instance_class(self):
-        """Instance class."""
-        return Class(self._env, lib.EnvGetInstanceClass(self._env, self._ist))
-
-    def send(self, message, arguments=None):
-        """Send a message to the Instance.
-
-        Message arguments must be provided as a string.
-
-        """
-        output = clips.data.DataObject(self._env)
-        instance = clips.data.DataObject(
-            self._env, dtype=CLIPSType.INSTANCE_ADDRESS)
-        instance.value = self._ist
-
-        args = arguments.encode() if arguments is not None else ffi.NULL
-
-        lib.EnvSend(
-            self._env, instance.byref, message.encode(), args, output.byref)
-
-        return output.value
-
-    def delete(self):
-        """Delete the instance."""
-        if lib.EnvDeleteInstance(self._env, self._ist) != 1:
-            raise CLIPSError(self._env)
-
-    def unmake(self):
-        """This method is equivalent to delete except that it uses
-        message-passing instead of directly deleting the instance.
-
-        """
-        if lib.EnvUnmakeInstance(self._env, self._ist) != 1:
-            raise CLIPSError(self._env)
+        if isinstance(value, tuple):
+            for defclass in classes(self._env, value):
+                yield defclass
 
 
 class MessageHandler:
@@ -648,7 +533,7 @@ class MessageHandler:
 
     __slots__ = '_env', '_cls', '_idx'
 
-    def __init__(self, env, cls, idx):
+    def __init__(self, env: ffi.CData, cls: ffi.CData, idx: int):
         self._env = env
         self._cls = cls
         self._idx = idx
@@ -660,73 +545,306 @@ class MessageHandler:
         return self._cls == cls._cls and self._idx == cls._idx
 
     def __str__(self):
-        string = ffi.string(lib.EnvGetDefmessageHandlerPPForm(
-            self._env, self._cls, self._idx))
+        string = lib.DefmessageHandlerPPForm(self._cls, self._idx)
+        string = ffi.string(string).decode() if string != ffi.NULL else ''
 
-        return string.decode().rstrip('\n')
+        return ' '.join(string.split())
 
     def __repr__(self):
-        string = ffi.string(lib.EnvGetDefmessageHandlerPPForm(
-            self._env, self._cls, self._idx))
+        string = lib.DefmessageHandlerPPForm(self._cls, self._idx)
+        string = ffi.string(string).decode() if string != ffi.NULL else ''
 
-        return "%s: %s" % (self.__class__.__name__,
-                           string.decode().rstrip('\n'))
+        return "%s: %s" % (self.__class__.__name__, ' '.join(string.split()))
 
     @property
-    def name(self):
+    def name(self) -> str:
         """MessageHandler name."""
-        return ffi.string(lib.EnvGetDefmessageHandlerName(
-            self._env, self._cls, self._idx)).decode()
+        return ffi.string(lib.DefmessageHandlerName(
+            self._cls, self._idx)).decode()
 
     @property
-    def type(self):
+    def type(self) -> str:
         """MessageHandler type."""
-        return ffi.string(lib.EnvGetDefmessageHandlerType(
-            self._env, self._cls, self._idx)).decode()
+        return ffi.string(lib.DefmessageHandlerType(
+            self._cls, self._idx)).decode()
 
     @property
-    def watch(self):
+    def watch(self) -> bool:
         """True if the MessageHandler is being watched."""
-        return bool(lib.EnvGetDefmessageHandlerWatch(
-            self._env, self._cls, self._idx))
+        return lib.DefmessageHandlerGetWatch(self._cls, self._idx)
 
     @watch.setter
-    def watch(self, flag):
+    def watch(self, flag: bool):
         """True if the MessageHandler is being watched."""
-        lib.EnvSetDefmessageHandlerWatch(
-            self._env, int(flag), self._cls, self._idx)
+        lib.DefmessageHandlerSetWatch(self._cls, self._idx, flag)
 
     @property
-    def deletable(self):
+    def deletable(self) -> bool:
         """True if the MessageHandler can be deleted."""
-        return bool(lib.EnvIsDefmessageHandlerDeletable(
-            self._env, self._cls, self._idx))
+        return lib.DefmessageHandlerIsDeletable(self._cls, self._idx)
 
     def undefine(self):
         """Undefine the MessageHandler.
 
-        Python equivalent of the CLIPS undefmessage-handler command.
+        Equivalent to the CLIPS (undefmessage-handler) function.
 
         The object becomes unusable after this method has been called.
 
         """
-        if lib.EnvUndefmessageHandler(self._env, self._cls, self._idx) != 1:
+        if not lib.UndefmessageHandler(self._cls, self._idx, self._env):
             raise CLIPSError(self._env)
 
-        self._env = None
+        self._env = self._cls = self._idx = None
 
 
-def classes(env, names):
+class DefinedInstances:
+    """The DefinedInstances constitute a set of a priori
+    or initial knowledge specified as a collection of instances of user
+    defined classes.
+
+    When the CLIPS environment is reset, every instance specified
+    within a definstances construct in the CLIPS knowledge base
+    is added to the DefinedInstances list.
+
+    """
+
+    __slots__ = '_env', '_dis'
+
+    def __init__(self, env: ffi.CData, dis: ffi.CData):
+        self._env = env
+        self._dis = dis
+
+    def __hash__(self):
+        return hash(self._dis)
+
+    def __eq__(self, dis):
+        return self._dis == dis._dis
+
+    def __str__(self):
+        string = lib.DefinstancesPPForm(self._dis)
+        string = ffi.string(string).decode() if string != ffi.NULL else ''
+
+        return ' '.join(string.split())
+
+    def __repr__(self):
+        string = lib.DefinstancesPPForm(self._dis)
+        string = ffi.string(string).decode() if string != ffi.NULL else ''
+
+        return "%s: %s" % (self.__class__.__name__, ' '.join(string.split()))
+
+    @property
+    def name(self) -> str:
+        """The DefinedInstances name."""
+        return ffi.string(lib.DefinstancesName(self._dis)).decode()
+
+    @property
+    def module(self) -> Module:
+        """The module in which the DefinedInstances is defined.
+
+        Python equivalent of the CLIPS (definstances-module) command.
+
+        """
+        modname = ffi.string(lib.DefinstancesModule(self._dis))
+
+        return Module(self._env, lib.FindDefmodule(self._env, modname))
+
+    @property
+    def deletable(self) -> bool:
+        """True if the DefinedInstances can be undefined."""
+        return lib.DefinstancesIsDeletable(self._dis)
+
+    def undefine(self):
+        """Undefine the DefinedInstances.
+
+        Equivalent to the CLIPS (undefinstances) function.
+
+        The object becomes unusable after this method has been called.
+
+        """
+        if not lib.Undefinstances(self._dis, self._env):
+            raise CLIPSError(self._env)
+
+        self._env = self._dis = None
+
+
+class Classes:
+    """Classes and Instances namespace class.
+
+    .. note::
+
+       All the Classes methods are accessible through the Environment class.
+
+    """
+
+    __slots__ = '_env'
+
+    def __init__(self, env: ffi.CData):
+        self._env = env
+
+    @property
+    def default_mode(self) -> ClassDefaultMode:
+        """Return the current class defaults mode.
+
+        Equivalent to the CLIPS (get-class-defaults-mode) function.
+
+        """
+        return ClassDefaultMode(lib.GetClassDefaultsMode(self._env))
+
+    @default_mode.setter
+    def default_mode(self, value: ClassDefaultMode):
+        """Return the current class defaults mode.
+
+        Equivalent to the CLIPS (get-class-defaults-mode) command.
+
+        """
+        lib.SetClassDefaultsMode(self._env, value)
+
+    @property
+    def instances_changed(self) -> bool:
+        """True if any instance has changed since last check."""
+        value = lib.GetInstancesChanged(self._env)
+        lib.SetInstancesChanged(self._env, False)
+
+        return value
+
+    def classes(self) -> iter:
+        """Iterate over the defined Classes."""
+        defclass = lib.GetNextDefclass(self._env, ffi.NULL)
+
+        while defclass != ffi.NULL:
+            yield Class(self._env, defclass)
+
+            defclass = lib.GetNextDefclass(self._env, defclass)
+
+    def find_class(self, name: str) -> Class:
+        """Find the Class by the given name."""
+        defclass = lib.FindDefclass(self._env, name.encode())
+        if defclass == ffi.NULL:
+            raise LookupError("Class '%s' not found" % name)
+
+        return Class(self._env, defclass)
+
+    def instances(self) -> iter:
+        """Iterate over the defined Instancees."""
+        definstance = lib.GetNextInstance(self._env, ffi.NULL)
+
+        while definstance != ffi.NULL:
+            yield Instance(self._env, definstance)
+
+            definstance = lib.GetNextInstance(self._env, definstance)
+
+    def find_instance(self, name: str, module: Module = None) -> Instance:
+        """Find the Instance by the given name."""
+        module = module._mdl if module is not None else ffi.NULL
+        definstance = lib.FindInstance(self._env, module, name.encode(),
+                                       ClassDefaultMode.CONSERVATION_MODE)
+        if definstance == ffi.NULL:
+            raise LookupError("Instance '%s' not found" % name)
+
+        return Instance(self._env, definstance)
+
+    def load_instances(self, instances: str) -> int:
+        """Load a set of instances into the CLIPS data base.
+
+        Equivalent to the CLIPS (load-instances) function.
+
+        Instances can be loaded from a string, a file or a binary file.
+
+        """
+        instances = instances.encode()
+
+        if os.path.exists(instances):
+            try:
+                return self._load_instances_binary(instances)
+            except CLIPSError:
+                return self._load_instances_text(instances)
+        else:
+            return self._load_instances_string(instances)
+
+    def _load_instances_binary(self, instances: str) -> int:
+        ret = lib.BinaryLoadInstances(self._env, instances)
+        if ret == -1:
+            raise CLIPSError(self._env)
+
+        return ret
+
+    def _load_instances_text(self, instances: str) -> int:
+        ret = lib.LoadInstances(self._env, instances)
+        if ret == -1:
+            raise CLIPSError(self._env)
+
+        return ret
+
+    def _load_instances_string(self, instances: str) -> int:
+        ret = lib.LoadInstancesFromString(self._env, instances, len(instances))
+        if ret == -1:
+            raise CLIPSError(self._env)
+
+        return ret
+
+    def restore_instances(self, instances: str) -> int:
+        """Restore a set of instances into the CLIPS data base.
+
+        Equivalent to the CLIPS (restore-instances) function.
+
+        Instances can be passed as a set of strings or as a file.
+
+        """
+        instances = instances.encode()
+
+        if os.path.exists(instances):
+            ret = lib.RestoreInstances(self._env, instances)
+            if ret == -1:
+                raise CLIPSError(self._env)
+        else:
+            ret = lib.RestoreInstancesFromString(
+                self._env, instances, len(instances))
+            if ret == -1:
+                raise CLIPSError(self._env)
+
+        return ret
+
+    def save_instances(self, path: str, binary: bool = False,
+                       mode: SaveMode = SaveMode.LOCAL_SAVE) -> int:
+        """Save the instances in the system to the specified file.
+
+        If binary is True, the instances will be saved in binary format.
+
+        Equivalent to the CLIPS (save-instances) function.
+
+        """
+        if binary:
+            ret = lib.BinarySaveInstances(self._env, path.encode(), mode)
+        else:
+            ret = lib.SaveInstances(self._env, path.encode(), mode)
+        if ret == 0:
+            raise CLIPSError(self._env)
+
+        return ret
+
+
+def slot_value(env: ffi.CData, ist: ffi.CData, slot: str) -> type:
+    value = clips.values.clips_value(env)
+
+    ret = lib.DirectGetSlot(ist, slot.encode(), value)
+    if ret != lib.GSE_NO_ERROR:
+        raise CLIPSError(env, code=ret)
+
+    return clips.values.python_value(env, value)
+
+
+def classes(env: ffi.CData, names: (list, tuple)) -> iter:
     for name in names:
-        defclass = lib.EnvFindDefclass(env, name.encode())
+        defclass = lib.FindDefclass(env, name.encode())
         if defclass == ffi.NULL:
             raise CLIPSError(env)
 
         yield Class(env, defclass)
 
 
-def instance_pp_string(env, ist):
-    buf = ffi.new('char[1024]')
-    lib.EnvGetInstancePPForm(env, buf, 1024, ist)
+def instance_pp_string(env: ffi.CData, ist: ffi.CData) -> str:
+    builder = environment_builder(env, 'string')
+    lib.SBReset(builder)
+    lib.InstancePPForm(ist, builder)
 
-    return ffi.string(buf).decode()
+    return ffi.string(builder.contents).decode()
