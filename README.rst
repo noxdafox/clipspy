@@ -17,7 +17,7 @@ Python CFFI_ bindings for the ‘C’ Language Integrated Production System CLIP
    :alt: Documentation Status
 
 
-Initially developed at NASA’s Johnson Space Center, CLIPS is a rule-based programming language useful for creating expert and production systems where a heuristic solution is easier to implement and maintain than an algorithmic one. CLIPS is designed to facilitate the development of software to model human knowledge or expertise.
+Initially developed at NASA’s Johnson Space Center, CLIPS is a rule-based programming language useful for creating expert and production systems where a heuristic solution is easier to implement and maintain than an imperative one. CLIPS is designed to facilitate the development of software to model human knowledge or expertise.
 
 CLIPSPy brings CLIPS capabilities within the Python ecosystem.
 
@@ -51,7 +51,7 @@ Building from sources
 
 The CLIPS 6.30 shared library and headers must be installed within the system.
 
-If library and headers are not in the system default locations, they can be specified to the installer via the ``CFLAGS`` and ``LDFLAGS`` environment variables.
+If library and headers are not in the system default locations, they can be specified to the installer via `--include-dirs` and `--library-dirs` parameters.
 
 .. code:: bash
 
