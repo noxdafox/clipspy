@@ -326,20 +326,10 @@ class Template:
         return self._tpl == tpl._tpl
 
     def __str__(self):
-        if self.implied:
-            string = self.name
-        else:
-            string = ffi.string(
-                lib.EnvGetDeftemplatePPForm(self._env, self._tpl)).decode()
-
-        return string
+        return template_pp_string(self._env, self._tpl)
 
     def __repr__(self):
-        if self.implied:
-            string = self.name
-        else:
-            string = ffi.string(
-                lib.EnvGetDeftemplatePPForm(self._env, self._tpl)).decode()
+        string = template_pp_string(self._env, self._tpl)
 
         return "%s: %s" % (self.__class__.__name__, string)
 
@@ -564,3 +554,15 @@ def fact_pp_string(env, fact):
     lib.EnvGetFactPPForm(env, buf, 1024, fact)
 
     return ffi.string(buf).decode()
+
+
+def template_pp_string(env, template):
+    strn = lib.EnvGetDeftemplatePPForm(env, template)
+
+    if strn != ffi.NULL:
+        return ffi.string(strn).decode().strip()
+    else:
+        module = ffi.string(lib.EnvDeftemplateModule(env, template)).decode()
+        name = ffi.string(lib.EnvGetDeftemplateName(env, template)).decode()
+
+        return '(deftemplate %s::%s)' % (module, name)

@@ -167,8 +167,9 @@ class TestFacts(unittest.TestCase):
         self.assertEqual(template.name, 'implied-fact')
         self.assertEqual(template.module.name, 'MAIN')
         self.assertEqual(template.slots(), ())
-        self.assertEqual(str(template), 'implied-fact')
-        self.assertEqual(repr(template), 'Template: implied-fact')
+        self.assertEqual(str(template), '(deftemplate MAIN::implied-fact)')
+        self.assertEqual(repr(template),
+                         'Template: (deftemplate MAIN::implied-fact)')
         self.assertFalse(template.deletable)
         with self.assertRaises(CLIPSError):
             template.undefine()
@@ -180,8 +181,8 @@ class TestFacts(unittest.TestCase):
         self.assertEqual(template.name, 'template-fact')
         self.assertEqual(template.module.name, 'MAIN')
         self.assertEqual(len(tuple(template.slots())), 5)
-        self.assertEqual(str(template), DEFTEMPLATE)
-        self.assertEqual(repr(template), 'Template: ' + DEFTEMPLATE)
+        self.assertEqual(str(template), DEFTEMPLATE.strip())
+        self.assertEqual(repr(template), 'Template: ' + DEFTEMPLATE.strip())
         self.assertTrue(template.deletable)
 
         template.undefine()
