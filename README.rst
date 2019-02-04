@@ -49,14 +49,27 @@ CLIPS 6.30 is available as Debian package in Unstable.
 Building from sources
 *********************
 
-The CLIPS 6.30 shared library and headers must be installed within the system.
-
-If library and headers are not in the system default locations, they can be specified to the installer via `--include-dirs` and `--library-dirs` parameters.
+The provided Makefile takes care of retrieving the CLIPS source code and compiling the Python bindings together with it.
 
 .. code:: bash
 
-    $ python setup.py build_ext --include-dirs <headers_location> --library-dirs <library_location>
-    # python setup.py install
+    $ make
+    # make install
+
+The following tools are required to build the sources.
+
+ - gcc
+ - make
+ - wget
+ - unzip
+ - python
+ - python-cffi
+
+The following conditional variables are accepted by the Makefile.
+
+ - PYTHON: Python interpreter to use, default `python`
+ - CLIPS_SOURCE_URL: Location from where to retrieve CLIPS source code archive.
+ - SHARED_LIBRARY_DIR: Path where to install CLIPS shared library, default `/usr/lib`
 
 Example
 -------
