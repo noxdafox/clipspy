@@ -75,7 +75,6 @@ setup(
     ext_package="clips",
     setup_requires=["cffi>=1.0.0"],
     install_requires=["cffi>=1.0.0"],
-    extras_require={":python_version<'3'": ["enum34"]},
     cffi_modules=["clips/clips_build.py:ffibuilder"],
     include_dirs=["/usr/include/clips", "/usr/local/include/clips"],
     data_files=[('lib', ['lib/clips.cdef'])],
@@ -83,7 +82,6 @@ setup(
     url="https://github.com/noxdafox/clipspy",
     classifiers=[
         "Programming Language :: Python",
-        "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: Implementation :: PyPy",
         "Development Status :: 4 - Beta",
