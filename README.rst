@@ -1,7 +1,7 @@
 CLIPS Python bindings
 =====================
 
-Python CFFI_ bindings for the ‘C’ Language Integrated Production System CLIPS_ 6.30.
+Python CFFI_ bindings for the ‘C’ Language Integrated Production System CLIPS_ 6.40.
 
 :Source: https://github.com/noxdafox/clipspy
 :Documentation: https://clipspy.readthedocs.io
@@ -36,16 +36,6 @@ CLIPSPy comes as a wheel for most of the Python versions and architectures. Ther
 Linux
 +++++
 
-Debian and derivates
-********************
-
-CLIPS 6.30 is available as Debian package in Unstable.
-
-.. code:: bash
-
-    # apt install libclips libclips-dev
-    # pip install clipspy
-
 Building from sources
 *********************
 
@@ -76,37 +66,33 @@ Example
 
 .. code:: python
 
-    from clips import Environment, Symbol
+    import clips
 
-    environment = Environment()
+    DEFTEMPLATE_STRING = """
+    (deftemplate person
+      (slot name (type STRING))
+      (slot surname (type STRING))
+      (slot birthdate (type SYMBOL)))
+    """
 
-    # load constructs into the environment
+    environment = clips.Environment()
+
+    # load constructs into the environment from a file
     environment.load('constructs.clp')
 
-    # assert a fact as string
-    environment.assert_string('(a-fact)')
+    # define a fact template
+    environment.build(DEFTEMPLATE_STRING)
 
-    # retrieve a fact template
-    template = environment.find_template('a-fact')
+    # retrieve the fact template
+    template = environment.find_template('person')
 
-    # create a new fact from the template
-    fact = template.new_fact()
+    # assert a new fact through its template
+    fact = template.assert_fact(name='John',
+                                surname='Doe',
+                                birthdate=clips.Symbol('01/01/1970'))
 
-    # implied (ordered) facts are accessed as lists
-    fact.append(42)
-    fact.extend(("foo", "bar"))
-
-    # assert the fact within the environment
-    fact.assertit()
-
-    # retrieve another fact template
-    template = environment.find_template('another-fact')
-    fact = template.new_fact()
-
-    # template (unordered) facts are accessed as dictionaries
-    fact["slot-name"] = Symbol("foo")
-
-    fact.assertit()
+    # fact slots can be accessed as dictionary elements
+    assert fact['name'] == 'John'
 
     # execute the activations in the agenda
     environment.run()
