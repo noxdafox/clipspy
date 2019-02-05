@@ -1,25 +1,16 @@
+dist: xenial
 language: python
-matrix:
-  include:
-    - os: linux
-      sudo: required
-      python: 2.7
-    - os: linux
-      sudo: required
-      python: 3.4
-    - os: linux
-      sudo: required
-      python: 3.6
-    - os: linux
-      sudo: required
-      python: pypy
-env:
-  global:
-    - LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/clips_core_source_630/core/:$LD_LIBRARY_PATH
+python:
+  - 2.7
+  - 3.4
+  - 3.5
+  - 3.6
+  - &pypy2 pypy2.7-6.0
+  - &pypy3 pypy3.5-6.0
 install:
-  - ./.travis_install.sh
+  - pip install cffi
 script:
-  - python -m pytest -v
+  - make test
 branches:
   only:
   - master

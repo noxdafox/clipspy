@@ -1,7 +1,7 @@
 CLIPS Python bindings
 =====================
 
-Python CFFI_ bindings for CLIPS_ 6.30
+Python CFFI_ bindings for the ‘C’ Language Integrated Production System CLIPS_ 6.30.
 
 :Source: https://github.com/noxdafox/clipspy
 :Documentation: https://clipspy.readthedocs.io
@@ -16,16 +16,60 @@ Python CFFI_ bindings for CLIPS_ 6.30
    :target: http://clipspy.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation Status
 
+
+Initially developed at NASA’s Johnson Space Center, CLIPS is a rule-based programming language useful for creating expert and production systems where a heuristic solution is easier to implement and maintain than an imperative one. CLIPS is designed to facilitate the development of software to model human knowledge or expertise.
+
+CLIPSPy brings CLIPS capabilities within the Python ecosystem.
+
 Installation
 ------------
 
-The CLIPS shared library and headers must be installed within the system.
+Windows
++++++++
 
-If library and headers are not in the system default locations, they can be specified to the installer via the ``CFLAGS`` and ``LDFLAGS`` environment variables.
+CLIPSPy comes as a wheel for most of the Python versions and architectures. Therefore, it can be installed from Pip.
+
+.. code:: batch
+
+    > pip install clipspy
+
+Linux
++++++
+
+Debian and derivates
+********************
+
+CLIPS 6.30 is available as Debian package in Unstable.
 
 .. code:: bash
 
-    # CFLAGS="-I<headers path>" LDFLAGS="-L<library path>" pip install clipspy
+    # apt install libclips libclips-dev
+    # pip install clipspy
+
+Building from sources
+*********************
+
+The provided Makefile takes care of retrieving the CLIPS source code and compiling the Python bindings together with it.
+
+.. code:: bash
+
+    $ make
+    # make install
+
+The following tools are required to build the sources.
+
+ - gcc
+ - make
+ - wget
+ - unzip
+ - python
+ - python-cffi
+
+The following conditional variables are accepted by the Makefile.
+
+ - PYTHON: Python interpreter to use, default `python`
+ - CLIPS_SOURCE_URL: Location from where to retrieve CLIPS source code archive.
+ - SHARED_LIBRARY_DIR: Path where to install CLIPS shared library, default `/usr/lib`
 
 Example
 -------
