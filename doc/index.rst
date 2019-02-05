@@ -11,7 +11,7 @@ CLIPS Python bindings
    :Release: |release|
    :Date: |today|
 
-Python CFFI_ bindings for the 'C' Language Integrated Production System (CLIPS_) 6.30
+Python CFFI_ bindings for the 'C' Language Integrated Production System (CLIPS_) 6.40
 
 
 Design principles
@@ -47,18 +47,6 @@ The mapping between CLIPS and Python types is as follows.
 | EXTERNAL_ADDRESS | ffi.CData  |
 +------------------+------------+
 
-Python native types returned by functions defined within an Environment are mapped to the following CLIPS symbols.
-
-+------------------+------------+
-| CLIPS            | Python     |
-+==================+============+
-| nil              | None       |
-+------------------+------------+
-| TRUE             | True       |
-+------------------+------------+
-| FALSE            | False      |
-+------------------+------------+
-
 \* The Python Symbol object is a `interned string`_
 
 ** `ImpliedFact` and `TemplateFact` are `Fact` subclasses
@@ -67,17 +55,17 @@ Python native types returned by functions defined within an Environment are mapp
 Basic Data Abstractions
 -----------------------
 
+
 Facts
 +++++
 
 A `fact` is a list of atomic values that are either referenced positionally (ordered or implied facts) or by name (unordered or template facts).
 
+
 Ordered Facts
 *************
 
-Ordered or implied facts represent information as a list of elements. As the order of the data is what matters, implied facts do not have explicit templates.
-
-It is not possible to define a template of an ordered fact. Yet it is possible to retrieve the implied template of an existing one. In this way it is possible to programmatically assert ordered facts.
+Ordered or implied facts represent information as a list of elements. As the order of the data is what matters, implied facts do not have explicit templates. Ordered facts are pretty limited in terms of supported features.
 
 .. code:: python
 
@@ -85,48 +73,53 @@ It is not possible to define a template of an ordered fact. Yet it is possible t
 
     env = clips.Environment()
 
-    # Assert the first ordeded-fact as string so its template can be retrieved
-    fact_string = "(ordered-fact 1 2 3)"
-    fact = env.assert_string(fact_string)
+    # Ordered facts can only be asserted as strings
+    fact = env.assert_string('(ordered-fact 1 2 3)')
 
-    template = fact.template
+    # Ordered facts data can be accessed as list elements
+    assert fact[0] == 1
+    assert list(fact) == [1, 2, 3]
 
-    assert template.implied == True
-
-    new_fact = template.new_fact()
-    new_fact.extend((3, 4, 5))
-    new_fact.assertit()
-
-    for fact in env.facts():
-        print(fact)
 
 Template Facts
 **************
 
 Template or unordered facts represent data similarly to Python dictionaries. Unordered facts require a template to be defined. Templates are formal descriptions of the data represented by the fact.
 
-Template facts are more flexible as they support features such as constraints for the data types, default values and more.
+Template facts are more flexible as they support features such as constraints for the data types, default values and more. Template facts can also be modified once asserted.
 
 .. code:: python
 
     import clips
 
+    template_string = """
+    (deftemplate person
+      (slot name (type STRING))
+      (slot surname (type STRING))
+      (slot birthdate (type SYMBOL)))
+    """
+
     env = clips.Environment()
 
-    template_string = """
-    (deftemplate template-fact
-      (slot template-slot (type SYMBOL)))
-    """
     env.build(template_string)
 
-    template = env.find_template('template-fact')
+    template = env.find_template('person')
 
-    new_fact = template.new_fact()
-    new_fact['template-slot'] = clips.Symbol('a-symbol')
-    new_fact.assertit()
+    fact = template.assert_fact(name='John',
+                                surname='Doe',
+                                birthdate=clips.Symbol('01/01/1970'))
+
+    assert dict(fact) == {'name': 'John',
+                          'surname': 'Doe',
+                          'birthdate': clips.Symbol('01/01/1970')}
+
+    fact.modify_slots(name='Leeroy',
+                      surname='Jenkins',
+                      birthdate=clips.Symbol('11/05/2005'))
 
     for fact in env.facts():
         print(fact)
+
 
 Objects
 +++++++
@@ -151,13 +144,14 @@ Objects are instantiations of specific classes. They support more features such 
     env.build(class_string)
     env.build(handler_string)
 
-    klass = env.find_class('MyClass')
-    instance = klass.new_instance('instance-name')
-    instance['One'] = 1
-    instance['Two'] = 2
-    instance.send('handler')
+    defclass = env.find_class('MyClass')
+    instance = defclass.make_instance('instance-name', One=1, Two=2)
+    retval = instance.send('handler')
 
-.. note:: Conversely to facts where rules pattern matching is done at assertion time, instances are pattern matched when their fields are populated.
+    assert retval == 3
+
+    for instance in env.instances():
+        print(instance)
 
 
 Evaluating CLIPS code
@@ -173,10 +167,19 @@ Create a `multifield` value.
 
     env = clips.Environment()
 
-    expression = "(create$ hammer drill saw screw pliers wrench)"
-    env.eval(expression)
+    env.eval("(create$ hammer drill saw screw pliers wrench)")
 
-.. note:: The `eval` function cannot be used to define CLIPS constructs.
+CLIPS functions can also be called directly without the need of building language specific strings.
+
+.. code:: python
+
+    import clips
+
+    env = clips.Environment()
+
+    env.call('create$', clips.Symbol('hammer'), 'drill', 1, 2.0)
+
+.. note:: None of the above can be used to define CLIPS constructs. Use the `build` or `load` functions instead.
 
 
 Defining CLIPS constructs
