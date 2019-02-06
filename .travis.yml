@@ -14,3 +14,4 @@ script:
 branches:
   only:
   - master
+  - "6.40"
