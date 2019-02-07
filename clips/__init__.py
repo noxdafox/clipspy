@@ -29,9 +29,9 @@
 
 from clips.error import CLIPSError
 from clips.environment import Environment
-from clips.common import Symbol, SaveMode
 from clips.router import Router, LoggingRouter
 from clips.facts import ImpliedFact, TemplateFact
+from clips.common import Symbol, SaveMode, InstanceName
 from clips.common import Strategy, SalienceEvaluation, Verbosity
 from clips.common import ClassDefaultMode, TemplateSlotDefaultType
 
@@ -50,4 +50,5 @@ __all__ = ('CLIPSError',
            'ClassDefaultMode',
            'TemplateSlotDefaultType',
            'Symbol',
+           'InstanceName',
            'SaveMode')

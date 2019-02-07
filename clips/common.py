@@ -44,7 +44,13 @@ elif sys.version_info.major == 2:
     class Symbol(str):
         """Python equivalent of a CLIPS SYMBOL."""
         def __new__(cls, symbol):
+            # pylint: disable=E0602
             return str.__new__(cls, intern(str(symbol)))
+
+
+class InstanceName(Symbol):
+    """Instance names are CLIPS SYMBOLS."""
+    pass
 
 
 class CLIPSType(IntEnum):
