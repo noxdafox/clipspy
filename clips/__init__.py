@@ -27,15 +27,13 @@
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from clips.values import Symbol
 from clips.environment import Environment
-from clips.router import Router, LoggingRouter
 from clips.classes import Instance, Class
+from clips.values import Symbol, InstanceName
+from clips.router import Router, LoggingRouter
 from clips.facts import ImpliedFact, TemplateFact, Template
 from clips.common import SaveMode, Strategy, SalienceEvaluation, Verbosity
 from clips.common import CLIPSError, ClassDefaultMode, TemplateSlotDefaultType
-
-from clips import values
 
 __all__ = ('CLIPSError',
            'Environment',
@@ -45,6 +43,7 @@ __all__ = ('CLIPSError',
            'TemplateFact',
            'Template',
            'Instance',
+           'InstanceName',
            'Class',
            'Strategy',
            'SalienceEvaluation',

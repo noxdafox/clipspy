@@ -29,17 +29,21 @@
 
 import sys
 
-import clips
+from clips import common
 from clips.classes import Instance
 from clips.facts import new_fact, ImpliedFact, TemplateFact
 
-from clips._clips import lib, ffi
+from clips._clips import lib, ffi  # pylint: disable=E0611
 
 
 class Symbol(str):
     """Python equivalent of a CLIPS SYMBOL."""
     def __new__(cls, symbol):
         return str.__new__(cls, sys.intern(symbol))
+
+
+class InstanceName(Symbol):
+    """Python equivalent of a CLIPS INSTANCE_NAME."""
 
 
 def python_value(env, value: ffi.CData) -> type:
@@ -70,10 +74,10 @@ def clips_udf_value(env: ffi.CData, value: type = ffi.NULL,
     """
     if udf_value is ffi.NULL:
         return ffi.new("UDFValue *")
-    else:
-        udf_value.value = CLIPS_VALUES.get(type(value))(env, value)
 
-        return udf_value
+    udf_value.value = CLIPS_VALUES.get(type(value))(env, value)
+
+    return udf_value
 
 
 def multifield_value(env: ffi.CData, values: (list, tuple)) -> ffi.CData:
@@ -81,7 +85,7 @@ def multifield_value(env: ffi.CData, values: (list, tuple)) -> ffi.CData:
     if not values:
         return lib.EmptyMultifield(env)
 
-    builder = clips.common.environment_builder(env, 'multifield')
+    builder = common.environment_builder(env, 'multifield')
 
     lib.MBReset(builder)
     for value in values:
@@ -90,29 +94,29 @@ def multifield_value(env: ffi.CData, values: (list, tuple)) -> ffi.CData:
     return lib.MBCreate(builder)
 
 
-PYTHON_VALUES = {clips.common.CLIPSType.FLOAT:
+PYTHON_VALUES = {common.CLIPSType.FLOAT:
                  lambda e, v: float(v.floatValue.contents),
-                 clips.common.CLIPSType.INTEGER:
+                 common.CLIPSType.INTEGER:
                  lambda e, v: int(v.integerValue.contents),
-                 clips.common.CLIPSType.SYMBOL:
+                 common.CLIPSType.SYMBOL:
                  lambda e, v: Symbol(
                      ffi.string(v.lexemeValue.contents).decode()),
-                 clips.common.CLIPSType.STRING:
+                 common.CLIPSType.STRING:
                  lambda e, v: ffi.string(v.lexemeValue.contents).decode(),
-                 clips.common.CLIPSType.MULTIFIELD:
+                 common.CLIPSType.MULTIFIELD:
                  lambda e, v: tuple(
                      python_value(e, v.multifieldValue.contents + i)
                      for i in range(v.multifieldValue.length)),
-                 clips.common.CLIPSType.EXTERNAL_ADDRESS:
+                 common.CLIPSType.EXTERNAL_ADDRESS:
                  lambda e, v: v.externalAddressValue.contents,
-                 clips.common.CLIPSType.FACT_ADDRESS:
+                 common.CLIPSType.FACT_ADDRESS:
                  lambda e, v: new_fact(e, v.factValue),
-                 clips.common.CLIPSType.INSTANCE_ADDRESS:
+                 common.CLIPSType.INSTANCE_ADDRESS:
                  lambda e, v: Instance(e, v.instanceValue),
-                 clips.common.CLIPSType.INSTANCE_NAME:
-                 lambda e, v: Symbol(
+                 common.CLIPSType.INSTANCE_NAME:
+                 lambda e, v: InstanceName(
                      ffi.string(v.lexemeValue.contents).decode()),
-                 clips.common.CLIPSType.VOID: lambda e, v: None}
+                 common.CLIPSType.VOID: lambda e, v: None}
 
 
 CLIPS_VALUES = {int: lib.CreateInteger,
