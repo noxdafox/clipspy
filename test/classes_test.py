@@ -2,7 +2,7 @@ import os
 import unittest
 from tempfile import mkstemp
 
-from clips import Environment, Symbol
+from clips import Environment, Symbol, InstanceName
 from clips import CLIPSError, ClassDefaultMode, LoggingRouter
 
 
@@ -163,6 +163,11 @@ class TestClasses(unittest.TestCase):
     def test_make_instance(self):
         """Instance test."""
         defclass = self.env.find_class('ConcreteClass')
+
+        instance_name = self.env.eval(
+            '(make-instance test-name-instance of ConcreteClass)')
+        self.assertEqual(instance_name, 'test-name-instance')
+        self.assertTrue(isinstance(instance_name, InstanceName))
 
         defclass.make_instance('some-instance')
         instance = defclass.make_instance('test-instance', Slot=Symbol('value'))
