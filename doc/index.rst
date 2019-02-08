@@ -49,6 +49,18 @@ The mapping between CLIPS and Python types is as follows.
 | EXTERNAL_ADDRESS | ffi.CData      |
 +------------------+----------------+
 
+Python native types returned by functions defined within an Environment are mapped to the following CLIPS symbols.
+
++------------------+------------+
+| CLIPS            | Python     |
++==================+============+
+| nil              | None       |
++------------------+------------+
+| TRUE             | True       |
++------------------+------------+
+| FALSE            | False      |
++------------------+------------+
+
 \* The Python Symbol and InstanceName objects are `interned string`_.
 
 ** `ImpliedFact` and `TemplateFact` are `Fact` subclasses.
@@ -123,8 +135,8 @@ Template facts are more flexible as they support features such as constraints fo
         print(fact)
 
 
-Objects
-+++++++
+Instances
++++++++++
 
 Objects are instantiations of specific classes. They support more features such as class inheritance and message sending.
 
@@ -291,5 +303,5 @@ Indices and tables
 
 .. _CLIPS: http://www.clipsrules.net/
 .. _CFFI: https://cffi.readthedocs.io/en/latest/index.html
-.. _`Advanced Programming Guide`: http://clipsrules.sourceforge.net/documentation/v630/apg.pdf
+.. _`Advanced Programming Guide`: http://clipsrules.sourceforge.net/documentation/v640/apg.pdf
 .. _`interned string`: https://docs.python.org/3/library/sys.html?highlight=sys%20intern#sys.intern
