@@ -129,7 +129,9 @@ CLIPS_VALUES = {int: lib.CreateInteger,
                 Instance: lambda e, v: v._ist,
                 ImpliedFact: lambda e, v: v._fact,
                 TemplateFact: lambda e, v: v._fact,
-                Symbol: lambda e, v: lib.CreateSymbol(e, v.encode())}
+                Symbol: lambda e, v: lib.CreateSymbol(e, v.encode()),
+                InstanceName:
+                lambda e, v: lib.CreateInstanceName(e, v.encode())}
 
 
 ANY_TYPE_BITS = (lib.FLOAT_BIT | lib.INTEGER_BIT | lib.SYMBOL_BIT |
