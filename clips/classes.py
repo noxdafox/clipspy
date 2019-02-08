@@ -43,6 +43,7 @@ import os
 import clips
 
 from clips.modules import Module
+from clips.common import PutSlotError, PUT_SLOT_ERROR
 from clips.common import CLIPSError, SaveMode, ClassDefaultMode
 from clips.common import environment_builder, environment_modifier
 
@@ -122,11 +123,8 @@ class Instance:
             value = clips.values.clips_value(self._env, value=slot_val)
 
             ret = lib.IMPutSlot(modifier, str(slot).encode(), value)
-            if ret != lib.PSE_NO_ERROR:
-                if ret == lib.PSE_SLOT_NOT_FOUND_ERROR:
-                    raise KeyError("'%s'" % slot)
-                else:
-                    raise CLIPSError(self._env, code=ret)
+            if ret != PutSlotError.PSE_NO_ERROR:
+                raise PUT_SLOT_ERROR[ret](slot)
 
         if lib.IMModify(modifier) is ffi.NULL:
             raise CLIPSError(self._env, code=lib.IMError(self._env))
@@ -263,11 +261,8 @@ class Class:
             value = clips.values.clips_value(self._env, value=slot_val)
 
             ret = lib.IBPutSlot(builder, str(slot).encode(), value)
-            if ret != lib.PSE_NO_ERROR:
-                if ret == lib.PSE_SLOT_NOT_FOUND_ERROR:
-                    raise KeyError("'%s'" % slot)
-                else:
-                    raise CLIPSError(self._env, code=ret)
+            if ret != PutSlotError.PSE_NO_ERROR:
+                raise PUT_SLOT_ERROR[ret](slot)
 
         instance = lib.IBMake(builder, name.encode())
         if instance != ffi.NULL:

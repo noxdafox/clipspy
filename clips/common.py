@@ -99,6 +99,36 @@ class TemplateSlotDefaultType(IntEnum):
     DYNAMIC_DEFAULT = lib.DYNAMIC_DEFAULT
 
 
+class PutSlotError(IntEnum):
+    PSE_NO_ERROR = lib.PSE_NO_ERROR
+    PSE_NULL_POINTER_ERROR = lib.PSE_NULL_POINTER_ERROR
+    PSE_INVALID_TARGET_ERROR = lib.PSE_INVALID_TARGET_ERROR
+    PSE_SLOT_NOT_FOUND_ERROR = lib.PSE_SLOT_NOT_FOUND_ERROR
+    PSE_TYPE_ERROR = lib.PSE_TYPE_ERROR
+    PSE_RANGE_ERROR = lib.PSE_RANGE_ERROR
+    PSE_ALLOWED_VALUES_ERROR = lib.PSE_ALLOWED_VALUES_ERROR
+    PSE_CARDINALITY_ERROR = lib.PSE_CARDINALITY_ERROR
+    PSE_ALLOWED_CLASSES_ERROR = lib.PSE_ALLOWED_CLASSES_ERROR
+
+
+PUT_SLOT_ERROR = {PutSlotError.PSE_NULL_POINTER_ERROR:
+                  lambda s: RuntimeError("Internal error '%s'" % s),
+                  PutSlotError.PSE_INVALID_TARGET_ERROR:
+                  lambda s: ValueError("invalid target for slot '%s'" % s),
+                  PutSlotError.PSE_SLOT_NOT_FOUND_ERROR:
+                  lambda s: KeyError("slot '%s' does not exist" % s),
+                  PutSlotError.PSE_TYPE_ERROR:
+                  lambda s: TypeError("invalid type for slot '%s'" % s),
+                  PutSlotError.PSE_RANGE_ERROR:
+                  lambda s: ValueError("invalid range for slot '%s'" % s),
+                  PutSlotError.PSE_ALLOWED_VALUES_ERROR:
+                  lambda s: ValueError("value not allowed for slot '%s'" % s),
+                  PutSlotError.PSE_CARDINALITY_ERROR:
+                  lambda s: IndexError("invalid cardinality for slot '%s'" % s),
+                  PutSlotError.PSE_ALLOWED_CLASSES_ERROR:
+                  lambda s: ValueError("class not allowed for slot '%s'" % s)}
+
+
 def initialize_environment_data(environment):
     env = environment._env
 

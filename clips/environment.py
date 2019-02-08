@@ -113,7 +113,7 @@ class Environment:
             if ret != lib.LE_NO_ERROR:
                 raise CLIPSError(self._env, code=ret)
 
-    def save(self, path, binary=False):
+    def save(self, path: str, binary=False):
         """Save a set of constructs into the CLIPS data base.
 
         If binary is True, the constructs will be saved in binary format.
@@ -147,7 +147,7 @@ class Environment:
         if ret != lib.BE_NO_ERROR:
             raise CLIPSError(self._env, code=ret)
 
-    def eval(self, expression: str):
+    def eval(self, expression: str) -> type:
         """Evaluate an expression returning its value.
 
         Equivalent to the CLIPS (eval) function.

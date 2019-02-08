@@ -45,6 +45,7 @@ from itertools import chain
 import clips
 
 from clips.modules import Module
+from clips.common import PutSlotError, PUT_SLOT_ERROR
 from clips.common import environment_builder, environment_modifier
 from clips.common import CLIPSError, SaveMode, TemplateSlotDefaultType
 
@@ -174,11 +175,8 @@ class TemplateFact(Fact):
             value = clips.values.clips_value(self._env, value=slot_val)
 
             ret = lib.FMPutSlot(modifier, str(slot).encode(), value)
-            if ret != lib.PSE_NO_ERROR:
-                if ret == lib.PSE_SLOT_NOT_FOUND_ERROR:
-                    raise KeyError("'%s'" % slot)
-                else:
-                    raise CLIPSError(self._env, code=ret)
+            if ret != PutSlotError.PSE_NO_ERROR:
+                raise PUT_SLOT_ERROR[ret](slot)
 
         if lib.FMModify(modifier) is ffi.NULL:
             raise CLIPSError(self._env, code=lib.FBError(self._env))
@@ -295,11 +293,8 @@ class Template:
             value = clips.values.clips_value(self._env, value=slot_val)
 
             ret = lib.FBPutSlot(builder, str(slot).encode(), value)
-            if ret != lib.PSE_NO_ERROR:
-                if ret == lib.PSE_SLOT_NOT_FOUND_ERROR:
-                    raise KeyError("'%s'" % slot)
-                else:
-                    raise CLIPSError(self._env, code=ret)
+            if ret != PutSlotError.PSE_NO_ERROR:
+                raise PUT_SLOT_ERROR[ret](slot)
 
         fact = lib.FBAssert(builder)
         if fact != ffi.NULL:
