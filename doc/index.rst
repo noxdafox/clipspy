@@ -27,25 +27,27 @@ Data types
 
 The mapping between CLIPS and Python types is as follows.
 
-+------------------+------------+
-| CLIPS            | Python     |
-+==================+============+
-| INTEGER          | int        |
-+------------------+------------+
-| FLOAT            | float      |
-+------------------+------------+
-| STRING           | str        |
-+------------------+------------+
-| SYMBOL           | Symbol *   |
-+------------------+------------+
-| MULTIFIELD       | list       |
-+------------------+------------+
-| FACT_ADDRESS     | Fact **    |
-+------------------+------------+
-| INSTANCE_ADDRESS | Instance   |
-+------------------+------------+
-| EXTERNAL_ADDRESS | ffi.CData  |
-+------------------+------------+
++------------------+----------------+
+| CLIPS            | Python         |
++==================+================+
+| INTEGER          | int            |
++------------------+----------------+
+| FLOAT            | float          |
++------------------+----------------+
+| STRING           | str            |
++------------------+----------------+
+| SYMBOL           | Symbol *       |
++------------------+----------------+
+| MULTIFIELD       | list           |
++------------------+----------------+
+| FACT_ADDRESS     | Fact **        |
++------------------+----------------+
+| INSTANCE_NAME    | InstanceName * |
++------------------+----------------+
+| INSTANCE_ADDRESS | Instance       |
++------------------+----------------+
+| EXTERNAL_ADDRESS | ffi.CData      |
++------------------+----------------+
 
 Python native types returned by functions defined within an Environment are mapped to the following CLIPS symbols.
 
@@ -59,9 +61,9 @@ Python native types returned by functions defined within an Environment are mapp
 | FALSE            | False      |
 +------------------+------------+
 
-\* The Python Symbol object is a `interned string`_
+\* The Python Symbol and InstanceName objects are `interned string`_.
 
-** `ImpliedFact` and `TemplateFact` are `Fact` subclasses
+** `ImpliedFact` and `TemplateFact` are `Fact` subclasses.
 
 
 Basic Data Abstractions
