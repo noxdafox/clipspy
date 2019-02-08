@@ -14,7 +14,7 @@ DEFCLASSES = [
     """(defclass InheritClass (is-a AbstractClass))""",
     """
     (defclass ConcreteClass (is-a USER)
-      (slot Slot))
+      (slot Slot (type SYMBOL) (allowed-values value another-value)))
     """,
     """
     (defclass MessageHandlerClass (is-a USER)
@@ -148,16 +148,14 @@ class TestClasses(unittest.TestCase):
         self.assertTrue(slot.accessible)
         self.assertTrue(slot.initializable)
         self.assertEqual(slot.name, 'Slot')
-        self.assertEqual(slot.types, ('FLOAT', 'INTEGER', 'SYMBOL', 'STRING',
-                                      'EXTERNAL-ADDRESS', 'FACT-ADDRESS',
-                                      'INSTANCE-ADDRESS', 'INSTANCE-NAME'))
+        self.assertEqual(slot.types, ('SYMBOL', ))
         self.assertEqual(slot.sources, (defclass.name, ))
-        self.assertEqual(slot.range, ('-oo', '+oo'))
+        self.assertEqual(slot.range, Symbol('FALSE'))
         self.assertEqual(slot.facets, ('SGL', 'STC', 'INH', 'RW', 'LCL', 'RCT',
                                        'EXC', 'PRV', 'RW', 'put-Slot'))
         self.assertEqual(slot.cardinality, ())
-        self.assertEqual(slot.default_value, Symbol('nil'))
-        self.assertEqual(slot.allowed_values, Symbol('FALSE'))
+        self.assertEqual(slot.default_value, Symbol('value'))
+        self.assertEqual(slot.allowed_values, ('value', 'another-value'))
         self.assertEqual(tuple(slot.allowed_classes()), ())
 
     def test_make_instance(self):
@@ -194,6 +192,17 @@ class TestClasses(unittest.TestCase):
 
         with self.assertRaises(LookupError):
             self.env.find_instance('test-instance')
+
+    def test_make_instance_errors(self):
+        """Instance errors."""
+        defclass = self.env.find_class('ConcreteClass')
+
+        with self.assertRaises(KeyError):
+            defclass.make_instance('some-instance', NonExistingSlot=1)
+        with self.assertRaises(TypeError):
+            defclass.make_instance('some-instance', Slot="wrong type")
+        with self.assertRaises(ValueError):
+            defclass.make_instance('some-instance', Slot=Symbol('wrong-value'))
 
     def test_modify_instance(self):
         """Instance slot modification test."""

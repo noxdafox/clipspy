@@ -88,6 +88,20 @@ class TestFacts(unittest.TestCase):
         self.assertEqual(repr(fact), TMPL_RPR)
         self.assertTrue(fact in tuple(self.env.facts()))
 
+    def test_template_fact_errors(self):
+        """TemplateFacts errors."""
+        with self.assertRaises(LookupError):
+            self.env.find_template('non-existing-template')
+
+        template = self.env.find_template('template-fact')
+
+        with self.assertRaises(KeyError):
+            template.assert_fact(non_existing_slot=1)
+        with self.assertRaises(TypeError):
+            template.assert_fact(int=1.0)
+        with self.assertRaises(ValueError):
+            template.assert_fact(int=10)
+
     def test_fact_duplication(self):
         """Test fact duplication."""
         fact = self.env.assert_string('(implied-fact)')
