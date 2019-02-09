@@ -2,7 +2,7 @@ import os
 import unittest
 from tempfile import mkstemp
 
-from clips import Environment, Symbol, LoggingRouter, ImpliedFact
+from clips import Environment, Symbol, LoggingRouter, ImpliedFact, InstanceName
 
 
 DEFRULE_FACT = """
@@ -85,8 +85,8 @@ class TestEnvironment(unittest.TestCase):
 
     def test_eval_python_function(self):
         """Python function is evaluated correctly."""
-        expected = [0, 1.1, "2", Symbol('three')]
-        ret = self.env.eval('(python_function 0 1.1 "2" three)')
+        expected = [0, 1.1, "2", Symbol('three'), InstanceName('four')]
+        ret = self.env.eval('(python_function 0 1.1 "2" three [four])')
         self.assertEqual(ret, expected)
 
         expected = [0, 1.1, "2", Symbol('three')]
