@@ -31,7 +31,7 @@ import sys
 
 import clips
 
-from clips._clips import lib, ffi
+from clips._clips import lib, ffi  # pylint: disable=E0611
 
 
 class DataObject(object):
@@ -80,9 +80,9 @@ class DataObject(object):
         except KeyError:
             if dtype == clips.common.CLIPSType.MULTIFIELD:
                 return self.multifield_to_list()
-            elif dtype == clips.common.CLIPSType.FACT_ADDRESS:
+            if dtype == clips.common.CLIPSType.FACT_ADDRESS:
                 return clips.facts.new_fact(self._env, lib.to_pointer(dvalue))
-            elif dtype == clips.common.CLIPSType.INSTANCE_ADDRESS:
+            if dtype == clips.common.CLIPSType.INSTANCE_ADDRESS:
                 return clips.classes.Instance(self._env, lib.to_pointer(dvalue))
 
         return None
@@ -150,14 +150,17 @@ TYPES = {type(None): clips.common.CLIPSType.SYMBOL,
          clips.common.Symbol: clips.common.CLIPSType.SYMBOL,
          clips.facts.ImpliedFact: clips.common.CLIPSType.FACT_ADDRESS,
          clips.facts.TemplateFact: clips.common.CLIPSType.FACT_ADDRESS,
-         clips.classes.Instance: clips.common.CLIPSType.INSTANCE_ADDRESS}
+         clips.classes.Instance: clips.common.CLIPSType.INSTANCE_ADDRESS,
+         clips.common.InstanceName: clips.common.CLIPSType.INSTANCE_NAME}
 VALUES = {type(None): lambda e, v: lib.EnvAddSymbol(e, b'nil'),
           bool: lambda e, v: lib.EnvAddSymbol(e, b'TRUE' if v else b'FALSE'),
           int: lib.EnvAddLong,
           float: lib.EnvAddDouble,
           ffi.CData: lambda _, v: v,
           str: lambda e, v: lib.EnvAddSymbol(e, v.encode()),
-          clips.common.Symbol: lambda e, v: lib.EnvAddSymbol(e, v.encode())}
+          clips.common.Symbol: lambda e, v: lib.EnvAddSymbol(e, v.encode()),
+          clips.common.InstanceName:
+          lambda e, v: lib.EnvAddSymbol(e, v.encode())}
 
 if sys.version_info.major == 2:
     # pylint: disable=E0602
