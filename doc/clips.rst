@@ -33,6 +33,7 @@ clips.facts module
     :members:
     :undoc-members:
     :show-inheritance:
+    :exclude-members: new_fact, slot_value, slot_values, fact_pp_string
 
 clips.agenda module
 -------------------
@@ -41,6 +42,7 @@ clips.agenda module
     :members:
     :undoc-members:
     :show-inheritance:
+    :exclude-members: fact_pp_string
 
 clips.classes module
 --------------------
@@ -49,6 +51,7 @@ clips.classes module
     :members:
     :undoc-members:
     :show-inheritance:
+    :exclude-members: instance_pp_string, slot_value
 
 clips.functions module
 ----------------------
@@ -81,15 +84,6 @@ clips.common module
     :members:
     :undoc-members:
     :show-inheritance:
-
-clips.error module
-------------------
-
-.. automodule:: clips.error
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 
 Module contents
 ---------------
