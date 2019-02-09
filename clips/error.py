@@ -32,14 +32,15 @@ from __future__ import print_function
 from clips.router import Router
 from clips.common import ENVIRONMENT_DATA
 
-from clips._clips import lib, ffi
+from clips._clips import lib
 
 
 class CLIPSError(RuntimeError):
     """An error occurred within the CLIPS Environment."""
 
     def __init__(self, env):
-        message = ENVIRONMENT_DATA[env].error_router.last_message
+        error_router = ENVIRONMENT_DATA[env].routers['python-error-router']
+        message = error_router.last_message
         message = message.lstrip('\n').rstrip('\n').replace('\n', ' ')
 
         super(CLIPSError, self).__init__(message)

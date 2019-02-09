@@ -32,8 +32,6 @@ import sys
 from enum import IntEnum
 from collections import namedtuple
 
-from clips._clips import lib, ffi
-
 
 if sys.version_info.major == 3:
     class Symbol(str):
@@ -103,6 +101,6 @@ class TemplateSlotDefaultType(IntEnum):
     DYNAMIC_DEFAULT = 2
 
 
-# Assign functions and error routers per Environment
+# Assign functions and routers per Environment
 ENVIRONMENT_DATA = {}
-EnvData = namedtuple('EnvData', ('user_functions', 'error_router'))
+EnvData = namedtuple('EnvData', ('user_functions', 'routers'))

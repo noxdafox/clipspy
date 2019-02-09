@@ -2,6 +2,8 @@ from __future__ import print_function
 
 import logging
 
+from clips.common import ENVIRONMENT_DATA
+
 from clips._clips import lib, ffi
 
 
@@ -59,6 +61,8 @@ class Router(object):
         """Add the router to the given environment."""
         self._env = environment._env
         self._userdata = ffi.new_handle(self)
+
+        ENVIRONMENT_DATA[self._env].routers[self.name] = self
 
         lib.EnvAddRouterWithContext(
             self._env, self._name.encode(), self._priority,

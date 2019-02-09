@@ -57,6 +57,8 @@ class Environment(object):
         self._modules = Modules(self._env)
         self._functions = Functions(self._env)
 
+        ENVIRONMENT_DATA[self._env] = EnvData({}, {})
+
         # mapping between the namespace and the methods it exposes
         self._namespaces = {m: n for n in (self._facts,
                                            self._agenda,
@@ -67,10 +69,8 @@ class Environment(object):
 
         lib.define_function(self._env)
 
-        error_router = ErrorRouter('python-error-router', 40)
-        error_router.add_to_environment(self)
-
-        ENVIRONMENT_DATA[self._env] = EnvData({}, error_router)
+        router = ErrorRouter('python-error-router', 40)
+        router.add_to_environment(self)
 
     def __del__(self):
         try:
