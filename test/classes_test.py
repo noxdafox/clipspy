@@ -45,8 +45,8 @@ class TempFile:
 class TestClasses(unittest.TestCase):
     def setUp(self):
         self.env = Environment()
-        router = LoggingRouter()
-        router.add_to_environment(self.env)
+        self.env.add_router(LoggingRouter())
+
         for defclass in DEFCLASSES:
             self.env.build(defclass)
 

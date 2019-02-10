@@ -56,8 +56,7 @@ class TestEnvironment(unittest.TestCase):
     def setUp(self):
         self.values = []
         self.env = Environment()
-        self.router = LoggingRouter()
-        self.router.add_to_environment(self.env)
+        self.env.add_router(LoggingRouter())
         self.env.define_function(python_function)
         self.env.define_function(python_function,
                                  name='python-function-renamed')
@@ -69,8 +68,9 @@ class TestEnvironment(unittest.TestCase):
         self.env.build(DEFRULE_FACT)
         self.env.build(DEFRULE_INSTANCE)
 
-    def TearDown(self):
-        self.router.delete()
+    def tearDown(self):
+        for router in tuple(self.env.routers()):
+            router.delete()
 
     def python_method(self, *values):
         self.values += values
