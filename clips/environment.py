@@ -34,6 +34,7 @@ from clips.agenda import Agenda
 from clips.classes import Classes
 from clips.modules import Modules
 from clips.functions import Functions
+from clips.routers import Routers, ErrorRouter
 from clips.common import CLIPSError
 from clips.common import initialize_environment_data, delete_environment_data
 
@@ -47,25 +48,29 @@ class Environment:
     """
 
     __slots__ = ('_env', '_facts', '_agenda', '_classes',
-                 '_modules', '_functions', '_namespaces')
+                 '_modules', '_functions', '_routers', '_namespaces')
 
     def __init__(self):
         self._env = lib.CreateEnvironment()
 
-        initialize_environment_data(self)
+        initialize_environment_data(self._env)
 
         self._facts = Facts(self._env)
         self._agenda = Agenda(self._env)
         self._classes = Classes(self._env)
         self._modules = Modules(self._env)
         self._functions = Functions(self._env)
+        self._routers = Routers(self._env)
+
+        self._routers.add_router(ErrorRouter())
 
         # mapping between the namespace and the methods it exposes
         self._namespaces = {m: n for n in (self._facts,
                                            self._agenda,
                                            self._classes,
                                            self._modules,
-                                           self._functions)
+                                           self._functions,
+                                           self._routers)
                             for m in dir(n) if not m.startswith('_')}
 
     def __del__(self):

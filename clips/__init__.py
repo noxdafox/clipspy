@@ -30,7 +30,7 @@
 from clips.environment import Environment
 from clips.classes import Instance, Class
 from clips.values import Symbol, InstanceName
-from clips.router import Router, LoggingRouter
+from clips.routers import Router, LoggingRouter
 from clips.facts import ImpliedFact, TemplateFact, Template
 from clips.common import SaveMode, Strategy, SalienceEvaluation, Verbosity
 from clips.common import CLIPSError, ClassDefaultMode, TemplateSlotDefaultType

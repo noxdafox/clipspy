@@ -27,9 +27,18 @@
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+"""This module contains the definition of:
+
+  * Router class
+  * LoggingRouter class
+  * Routers namespace class
+
+"""
+
 import logging
 
 import clips
+from clips import common
 
 from clips._clips import lib, ffi
 
@@ -41,13 +50,18 @@ class Router:
     def __init__(self, name: str, priority: int):
         self._env = None
         self._name = name
-        self._userdata = None
         self._priority = priority
+        self._userdata = ffi.new_handle(self)
 
     @property
     def name(self) -> str:
         """The Router name."""
         return self._name
+
+    @property
+    def priority(self) -> int:
+        """The Router priority."""
+        return self._priority
 
     def query(self, _name: str) -> bool:
         """This method should return True if the provided logical name
@@ -56,7 +70,7 @@ class Router:
         """
         return False
 
-    def write(self, _name: str, _message: str) -> None:
+    def write(self, _name: str, _message: str):
         """If the query method returns True for the given logical name,
         this method will be called with the forwarded message.
 
@@ -64,12 +78,20 @@ class Router:
         return None
 
     def read(self, _name: str) -> int:
+        """Callback implementation for the `Environment.read_router`
+        function.
+
+        """
         return 0
 
     def unread(self, _name: str, _char: int) -> int:
+        """Callback implementation for the `Environment.unread_router`
+        function.
+
+        """
         return 0
 
-    def exit(self, _exitcode: int) -> None:
+    def exit(self, _exitcode: int):
         return None
 
     def activate(self):
@@ -89,26 +111,9 @@ class Router:
         if not lib.DeleteRouter(self._env, self._name.encode()):
             raise RuntimeError("Unable to delete router %s" % self._name)
 
-    def add_to_environment(self, environment):
-        """Add the router to the given environment."""
-        self._env = environment._env
-        self._userdata = ffi.new_handle(self)
-
-        clips.common.environment_data(self._env, 'routers')[self.name] = self
-
-        lib.AddRouter(
-            self._env,
-            self._name.encode(),
-            self._priority,
-            lib.query_function,
-            lib.write_function,
-            lib.read_function,
-            lib.unread_function,
-            lib.exit_function,
-            self._userdata)
-
 
 class ErrorRouter(Router):
+    """Router capturing error messages for CLIPSError exceptions."""
 
     __slots__ = '_env', '_name', '_userdata', '_priority', '_last_message'
 
@@ -138,18 +143,28 @@ class LoggingRouter(Router):
     integrated with CLIPS.
 
     """
+
+    __slots__ = '_env', '_name', '_userdata', '_priority', '_message'
+
     LOGGERS = {'stdout': logging.info,
                'stderr': logging.error,
-               'stfwrn': logging.warning}
+               'stdwrn': logging.warning}
 
     def __init__(self):
         super().__init__('python-logging-router', 30)
         self._message = ''
 
     def query(self, name: str) -> bool:
+        """Capture log from CLIPS output routers."""
         return name in self.LOGGERS
 
     def write(self, name: str, message: str):
+        """If the message is a new-line terminate sentence,
+        log it at according to the mapped level.
+
+        Otherwise, append it to the message string.
+
+        """
         if message == '\n':
             self.log_message(name)
         else:
@@ -161,6 +176,58 @@ class LoggingRouter(Router):
         if self._message:
             self.LOGGERS[name](self._message.lstrip('\n').rstrip('\n'))
             self._message = ''
+
+
+class Routers:
+    """Routers namespace class.
+
+    .. note::
+
+       All the Routers methods are accessible through the Environment class.
+
+    """
+    __slots__ = '_env'
+
+    def __init__(self, env):
+        self._env = env
+
+    def routers(self) -> iter:
+        """The User defined routers installed within the Environment."""
+        return common.environment_data(self._env, 'routers').values()
+
+    def read_router(self, router_name: str) -> int:
+        """Query the Router by the given name calling its `read` callback."""
+        return lib.ReadRouter(self._env, router_name.encode())
+
+    def unread_router(self, router_name: str, characters: int) -> int:
+        """Query the Router by the given name calling its `unread` callback."""
+        return lib.UnReadRouter(self._env, router_name.encode(), characters)
+
+    def write_router(self, router_name: str, *args):
+        """Send the given arguments to the given Router for writing."""
+        for arg in args:
+            if type(arg) == str:
+                lib.WriteString(self._env, router_name.encode(), arg.encode())
+            else:
+                value = clips.values.clips_value(self._env, arg)
+                lib.WriteCLIPSValue(self._env, router_name.encode(), value)
+
+    def add_router(self, router: Router):
+        """Add the given Router to the Environment."""
+        name = router.name
+        router._env = self._env
+
+        common.environment_data(self._env, 'routers')[name] = router
+
+        lib.AddRouter(self._env,
+                      name.encode(),
+                      router.priority,
+                      lib.query_function,
+                      lib.write_function,
+                      lib.read_function,
+                      lib.unread_function,
+                      lib.exit_function,
+                      router._userdata)
 
 
 @ffi.def_extern()

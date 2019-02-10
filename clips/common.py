@@ -30,8 +30,6 @@
 from enum import IntEnum
 from collections import namedtuple
 
-from clips.router import ErrorRouter
-
 from clips._clips import lib, ffi
 
 
@@ -129,9 +127,7 @@ PUT_SLOT_ERROR = {PutSlotError.PSE_NULL_POINTER_ERROR:
                   lambda s: ValueError("class not allowed for slot '%s'" % s)}
 
 
-def initialize_environment_data(environment):
-    env = environment._env
-
+def initialize_environment_data(env: ffi.CData) -> 'EnvData':
     fact = lib.CreateFactBuilder(env, ffi.NULL)
     if fact is ffi.NULL:
         raise CLIPSError(env, code=lib.FBError(env))
@@ -159,15 +155,12 @@ def initialize_environment_data(environment):
 
     ENVIRONMENT_DATA[env] = EnvData(builders, modifiers, {}, {})
 
-    error_router = ErrorRouter()
-    error_router.add_to_environment(environment)
-
     lib.DefinePythonFunction(env)
 
     return ENVIRONMENT_DATA[env]
 
 
-def delete_environment_data(env):
+def delete_environment_data(env: ffi.CData):
     data = ENVIRONMENT_DATA.pop(env, None)
 
     if data is not None:
@@ -184,15 +177,18 @@ def delete_environment_data(env):
         lib.IMDispose(instance)
 
 
-def environment_data(env, name) -> type:
+def environment_data(env: ffi.CData, name: str) -> type:
+    """Retrieve Environment specific data."""
     return getattr(ENVIRONMENT_DATA[env], name)
 
 
-def environment_builder(env, name) -> ffi.CData:
+def environment_builder(env: ffi.CData, name: str) -> ffi.CData:
+    """Retrieve Environment specific builder."""
     return getattr(ENVIRONMENT_DATA[env].builders, name)
 
 
-def environment_modifier(env, name) -> ffi.CData:
+def environment_modifier(env: ffi.CData, name: str) -> ffi.CData:
+    """Retrieve Environment specific modifier."""
     return getattr(ENVIRONMENT_DATA[env].modifiers, name)
 
 

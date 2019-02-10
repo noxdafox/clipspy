@@ -601,7 +601,7 @@ bool AddRouter(Environment *, const char *, int, RouterQueryFunction *,
                RouterWriteFunction *, RouterReadFunction *,
                RouterUnreadFunction *, RouterExitFunction *, void *);
 bool DeleteRouter(Environment *, const char *);
-void Write(Environment *, const char *);
+void WriteString(Environment *, const char *, const char *);
 void WriteCLIPSValue(Environment *, const char *, CLIPSValue *);
 int ReadRouter(Environment *, const char *);
 int UnreadRouter(Environment *, const char *, int);
