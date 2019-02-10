@@ -69,10 +69,10 @@ clips.modules module
     :undoc-members:
     :show-inheritance:
 
-clips.router module
--------------------
+clips.routers module
+--------------------
 
-.. automodule:: clips.router
+.. automodule:: clips.routers
     :members:
     :undoc-members:
     :show-inheritance:

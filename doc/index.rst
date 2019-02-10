@@ -252,6 +252,37 @@ In this example, Python regular expression support is added within the CLIPS eng
 
     env.eval('(regex_match "(www.)(.*)(.com)" "www.example.com")')
 
+I/O Routers
+-----------
+
+CLIPS provides a system to manage I/O via a Router interface documented in the Section 9 of the `Advanced Programming Guide`_. CLIPS routers mechanics are used, for example, to capture error messages and expose them through the `CLIPSError` exception.
+
+The following example shows how CLIPS routers can be used to integrate CLIPS output with Python logging facilities.
+
+.. code:: python
+
+    import logging
+    import clips
+
+    log_format = '%(asctime)s - %(levelname)s - %(message)s'
+    logging.basicConfig(level=logging.INFO, format=log_format)
+
+    env = clips.Environment()
+
+    router = clips.LoggingRouter()
+    env.add_router(router)
+
+    fact = env.assert_string('(foo bar baz)')
+    multifield = env.call('create$', 1, 2.0, clips.Symbol('three'), 'four')
+
+    env.write_router('stdout', 'New fact asserted: ', fact, '. ', 'A multifield: ', multifield, '\n')
+
+
+Example output.
+::
+
+    2019-02-10 20:36:26,669 - INFO - New fact asserted: <Fact-1>. A multifield: (1 2.0 three "four")
+
 
 Python Objects lifecycle
 ------------------------
