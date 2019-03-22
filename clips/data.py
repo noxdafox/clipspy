@@ -166,4 +166,8 @@ if sys.version_info.major == 2:
     # pylint: disable=E0602
     TYPES[unicode] = clips.common.CLIPSType.STRING
     # pylint: disable=E0602
+    TYPES[long] = clips.common.CLIPSType.INTEGER
+    # pylint: disable=E0602
     VALUES[unicode] = lambda e, v: lib.EnvAddSymbol(e, v.encode())
+    # pylint: disable=E0602
+    VALUES[long] = lib.EnvAddLong
