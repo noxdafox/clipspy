@@ -42,7 +42,7 @@ from clips.error import CLIPSError
 from clips._clips import lib, ffi
 
 
-class Modules:
+class Modules(object):
     """Globals and Modules namespace class.
 
     .. note::
@@ -117,7 +117,7 @@ class Modules:
         return Module(self._env, defmodule)
 
 
-class Global:
+class Global(object):
     """A CLIPS global variable.
 
     In CLIPS, Globals are defined via the (defglobal) statement.
@@ -215,7 +215,7 @@ class Global:
         self._env = None
 
 
-class Module:
+class Module(object):
     """Modules are namespaces restricting the CLIPS constructs scope."""
     __slots__ = '_env', '_mdl'
 

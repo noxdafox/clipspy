@@ -44,7 +44,7 @@ from clips.error import CLIPSError
 from clips._clips import lib, ffi
 
 
-class Functions:
+class Functions(object):
     """Functions, Generics and Methods namespace class.
 
     .. note::

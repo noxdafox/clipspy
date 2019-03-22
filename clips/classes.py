@@ -48,7 +48,7 @@ from clips.common import SaveMode, ClassDefaultMode, CLIPSType
 from clips._clips import lib, ffi
 
 
-class Classes:
+class Classes(object):
     """Classes and Instances namespace class.
 
     .. note::
@@ -202,7 +202,7 @@ class Classes:
         return ret
 
 
-class Class:
+class Class(object):
     """A Class is a template for creating instances of objects.
 
     In CLIPS, Classes are defined via the (defclass) statement.
@@ -382,7 +382,7 @@ class Class:
         self._env = None
 
 
-class ClassSlot:
+class ClassSlot(object):
     """A Class Instances organize the information within Slots.
 
     Slots might restrict the type or amount of data they store.
@@ -543,7 +543,7 @@ class ClassSlot:
                 yield klass
 
 
-class Instance:
+class Instance(object):
     """A Class Instance is an occurrence of an object.
 
     Instances represent the data as dictionaries where each slot is a key.
@@ -641,7 +641,7 @@ class Instance:
             raise CLIPSError(self._env)
 
 
-class MessageHandler:
+class MessageHandler(object):
     """MessageHandlers are the CLIPS equivalent of instance methods in Python.
 
     """

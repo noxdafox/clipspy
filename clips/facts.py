@@ -50,7 +50,7 @@ from clips.common import SaveMode, TemplateSlotDefaultType
 from clips._clips import lib, ffi
 
 
-class Facts:
+class Facts(object):
     """Facts and Templates namespace class.
 
     .. note::
@@ -300,7 +300,7 @@ class TemplateFact(Fact):
                 self[slot] = sequence[slot]
 
 
-class Template:
+class Template(object):
     """A Fact Template is a formal representation of the fact data structure.
 
     In CLIPS, Templates are defined via the (deftemplate) statement.
@@ -403,7 +403,7 @@ class Template:
             raise CLIPSError(self._env)
 
 
-class TemplateSlot:
+class TemplateSlot(object):
     """Template Facts organize the information within Slots.
 
     Slots might restrict the type or amount of data they store.

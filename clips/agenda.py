@@ -196,7 +196,7 @@ class Agenda(object):
         return lib.EnvRun(self._env, limit if limit is not None else -1)
 
 
-class Rule:
+class Rule(object):
     """A CLIPS rule.
 
     In CLIPS, Rules are defined via the (defrule) statement.
