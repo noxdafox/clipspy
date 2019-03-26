@@ -8,7 +8,7 @@ GRTAGS
 GTAGS
 .coverage
 .cache
-*build*
+*build/
 *eggs*
 *.egg-info/
 *_clips.c
