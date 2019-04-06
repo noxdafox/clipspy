@@ -166,9 +166,14 @@ class TestClasses(unittest.TestCase):
         defclass = self.env.find_class('ConcreteClass')
 
         instance_name = self.env.eval(
-            '(make-instance test-name-instance of ConcreteClass)')
-        self.assertEqual(instance_name, 'test-name-instance')
+            '(make-instance test-eval-instance of ConcreteClass)')
+        self.assertEqual(instance_name, 'test-eval-instance')
         self.assertTrue(isinstance(instance_name, InstanceName))
+
+        instance = self.env.make_instance(
+            '(test-make-instance of ConcreteClass (Slot value))')
+        self.assertEqual(instance.name, 'test-make-instance')
+        self.assertEqual(instance['Slot'], Symbol('value'))
 
         defclass.new_instance('some-instance')
         instance = defclass.new_instance('test-instance')
