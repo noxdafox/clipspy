@@ -246,7 +246,7 @@ class Class:
         """Whether or not the Class Slots are being watched."""
         lib.DefclassSetWatchSlots(self._cls, flag)
 
-    def make_instance(self, name: str = None, **slots) -> Instance:
+    def make_instance(self, instance_name: str = None, **slots) -> Instance:
         """Make a new Instance from this Class.
 
         Equivalent to the CLIPS (make-instance) function.
@@ -265,7 +265,8 @@ class Class:
                 raise PUT_SLOT_ERROR[ret](slot)
 
         instance = lib.IBMake(
-            builder, name.encode() if name is not None else ffi.NULL)
+            builder, instance_name.encode()
+            if instance_name is not None else ffi.NULL)
         if instance != ffi.NULL:
             return Instance(self._env, instance)
         else:
