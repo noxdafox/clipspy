@@ -153,14 +153,10 @@ Objects are instantiations of specific classes. They support more features such 
     env.build(class_string)
     env.build(handler_string)
 
-    klass = env.find_class('MyClass')
-    instance = klass.new_instance('instance-name')
-    instance['One'] = 1
-    instance['Two'] = 2
+    instance = env.make_instance('(instance-name of MyClass (One 1) (Two 2))')
+    assert instance['One'] == 1
+    assert instance['Two'] == 2
     instance.send('handler')
-
-.. note:: Conversely to facts where rules pattern matching is done at assertion time, instances are pattern matched when their fields are populated.
-
 
 Evaluating CLIPS code
 ---------------------
