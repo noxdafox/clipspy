@@ -201,6 +201,23 @@ class Classes(object):
 
         return ret
 
+    def make_instance(self, command):
+        """Create and initialize an instance of a user-defined class.
+
+        command must be a string in the form:
+
+        (<instance-name> of <class-name> <slot-override>*)
+        <slot-override> :== (<slot-name> <constant>*)
+
+        Python equivalent of the CLIPS make-instance command.
+
+        """
+        ist = lib.EnvMakeInstance(self._env, command.encode())
+        if ist == ffi.NULL:
+            raise CLIPSError(self._env)
+
+        return Instance(self._env, ist)
+
 
 class Class(object):
     """A Class is a template for creating instances of objects.
@@ -289,7 +306,14 @@ class Class(object):
         lib.EnvSetDefclassWatchSlots(self._env, int(flag), self._cls)
 
     def new_instance(self, name):
-        """Create a new raw instance from this Class."""
+        """Create a new raw instance from this Class.
+
+        No slot overrides or class default initializations
+        are performed for the instance.
+
+        This function bypasses message-passing.
+
+        """
         ist = lib.EnvCreateRawInstance(self._env, self._cls, name.encode())
         if ist == ffi.NULL:
             raise CLIPSError(self._env)
