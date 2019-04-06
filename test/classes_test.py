@@ -167,9 +167,10 @@ class TestClasses(unittest.TestCase):
         self.assertEqual(instance_name, 'test-name-instance')
         self.assertTrue(isinstance(instance_name, InstanceName))
 
-        defclass.make_instance('some-instance')
-        instance = defclass.make_instance('test-instance', Slot=Symbol('value'))
+        instance = defclass.make_instance()
+        self.assertEqual(instance.name, 'gen1')
 
+        instance = defclass.make_instance('test-instance', Slot=Symbol('value'))
         self.assertTrue(instance in defclass.instances())
         self.assertEqual(instance.name, 'test-instance')
         self.assertEqual(instance.instance_class, defclass)
