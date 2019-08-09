@@ -1,7 +1,7 @@
 PYTHON			?= python
-CLIPS_VERSION		?= 6.30
-CLIPS_SOURCE_URL	?= "https://downloads.sourceforge.net/project/clipsrules/CLIPS/6.30/clips_core_source_630.zip"
-MAKEFILE_NAME		?= makefile.lib
+CLIPS_VERSION		?= 6.31
+CLIPS_SOURCE_URL	?= "https://downloads.sourceforge.net/project/clipsrules/CLIPS/6.31/clips_core_source_631.zip"
+MAKEFILE_NAME		?= makefile
 SHARED_LIBRARY_DIR	?= /usr/lib
 
 .PHONY: clips clipspy test install clean
@@ -13,9 +13,7 @@ clips_source:
 	unzip -jo clips.zip -d clips_source
 
 clips: clips_source
-	cp clips_source/$(MAKEFILE_NAME) clips_source/Makefile
-	sed -i 's/gcc -c/gcc -fPIC -c/g' clips_source/Makefile
-	$(MAKE) -C clips_source
+	$(MAKE) -f $(MAKEFILE_NAME) -C clips_source CFLAGS+="-fPIC"
 	ld -G clips_source/*.o -o clips_source/libclips.so
 
 clipspy: clips
@@ -32,6 +30,8 @@ install: clipspy
 	 	$(SHARED_LIBRARY_DIR)/libclips.so.$(CLIPS_VERSION)
 	ln -s $(SHARED_LIBRARY_DIR)/libclips.so.$(CLIPS_VERSION)	\
 	 	$(SHARED_LIBRARY_DIR)/libclips.so.6
+	ln -s $(SHARED_LIBRARY_DIR)/libclips.so.$(CLIPS_VERSION)	\
+	 	$(SHARED_LIBRARY_DIR)/libclips.so
 	ldconfig -n -v $(SHARED_LIBRARY_DIR)
 	$(PYTHON) setup.py install
 
