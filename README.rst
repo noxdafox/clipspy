@@ -46,7 +46,7 @@ CLIPS 6.30 is available as Debian package in Unstable.
     # apt install libclips libclips-dev
     # pip install clipspy
 
-The *libclips* and *libclips-dev* packages are available for download in the linux_libs_ folder.
+The *libclips* and *libclips-dev* packages are available for download in the `linux_libs <linux_libs>`_ folder.
 
 Building from sources
 *********************
