@@ -1,6 +1,12 @@
 CLIPS Python bindings
 =====================
 
+This is a fork on `CLIPS Python bindings <https://github.com/noxdafox/clipspy>`_ providing a simple rules based reasoning
+flow based on CLIPS and management for scaling up the use of multiple rules engines.
+
+---------------------
+
+
 Python CFFI_ bindings for the ‘C’ Language Integrated Production System CLIPS_ 6.30.
 
 :Source: https://github.com/noxdafox/clipspy
@@ -20,6 +26,41 @@ Python CFFI_ bindings for the ‘C’ Language Integrated Production System CLIP
 Initially developed at NASA’s Johnson Space Center, CLIPS is a rule-based programming language useful for creating expert and production systems where a heuristic solution is easier to implement and maintain than an imperative one. CLIPS is designed to facilitate the development of software to model human knowledge or expertise.
 
 CLIPSPy brings CLIPS capabilities within the Python ecosystem.
+
+
+New Features (Work on Progress)
+-------------------------------
+
+Provide a flow based interface for easy use of rules engines:
+
+- RulesEngine class encapsulating reasoning flows in three steps:
+
+  1. set_facts() / set_slots()
+
+     Assert facts to the rules engine.
+
+  2. reason()
+
+     Execute rules chaining on the current facts (rules based reasoning).
+
+  3. collect_fact_values() / collect_resulting_slots
+
+     Get the resulting facts containing reasoning results.
+
+- Rules Engine Pool:
+
+  - Two modes:
+
+    - Stateless: The internal state (working memory, agenda, etc...) of the rules engines is not kept between two
+      consecutive invocations to the pool. A reset operation is automatically done after engine release.
+      **All engines in the pool are identical**.
+
+    - Statefull: The internal state is saved for every engine in the pool. The programmer is responsible for the rules
+      state management.
+      **All enignes in the pool are different** since they may have a completely different internal state. Threfore,
+      engine instances must be named until finally released. A **persistence** mechanism for engine state is needed.
+
+
 
 Installation
 ------------
