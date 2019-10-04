@@ -106,7 +106,7 @@ class Classes(object):
         return Class(self._env, defclass)
 
     def instances(self):
-        """Iterate over the defined Instancees."""
+        """Iterate over the defined Instances."""
         definstance = lib.EnvGetNextInstance(self._env, ffi.NULL)
 
         while definstance != ffi.NULL:
