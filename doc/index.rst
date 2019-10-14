@@ -267,6 +267,50 @@ If the previous example is pretty straightforward, there are more subtle scenari
         print(template)
 
 
+Building from sources
+---------------------
+
+The provided Makefile takes care of retrieving the CLIPS source code and compiling the Python bindings together with it.
+
+.. code:: bash
+
+    $ make
+    $ sudo make install
+
+The following tools are required to build the sources.
+
+ - gcc
+ - make
+ - wget
+ - unzip
+ - python
+ - python-cffi
+
+The following conditional variables are accepted by the Makefile.
+
+ - PYTHON: Python interpreter to use, default `python`
+ - CLIPS_SOURCE_URL: Location from where to retrieve CLIPS source code archive.
+ - SHARED_LIBRARY_DIR: Path where to install CLIPS shared library, default `/usr/lib`
+
+Manylinux Wheels
+++++++++++++++++
+
+It is possible to build `x86_64` wheels for Linux based on PEP-513_ standards. Only requirement is Docker_.
+
+To build the container, issue the following command from the project root folder.
+
+.. code:: bash
+
+    $ docker build -t clipspy-build-wheels:latest -f manylinux/Dockerfile .
+
+The wheels can then be built within the container placing the resulting packages in the `manylinux/wheelhouse` folder as follows.
+
+.. code:: bash
+
+    $ docker run --rm -v `pwd`/manylinux/wheelhouse:/io/wheelhouse clipspy-build-wheels:latest
+
+The container takes care of building the wheel packages and running the tests.
+
 API documentation
 -----------------
 
@@ -286,3 +330,5 @@ Indices and tables
 .. _CFFI: https://cffi.readthedocs.io/en/latest/index.html
 .. _`Advanced Programming Guide`: http://clipsrules.sourceforge.net/documentation/v630/apg.pdf
 .. _`interned string`: https://docs.python.org/3/library/sys.html?highlight=sys%20intern#sys.intern
+.. _PEP-513: https://www.python.org/dev/peps/pep-0513/
+.. _Docker: https://www.docker.com
