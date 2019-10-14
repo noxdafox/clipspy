@@ -1,7 +1,7 @@
 CLIPS Python bindings
 =====================
 
-Python CFFI_ bindings for the ‘C’ Language Integrated Production System CLIPS_ 6.30.
+Python CFFI_ bindings for the ‘C’ Language Integrated Production System CLIPS_ 6.31.
 
 :Source: https://github.com/noxdafox/clipspy
 :Documentation: https://clipspy.readthedocs.io
@@ -24,52 +24,36 @@ CLIPSPy brings CLIPS capabilities within the Python ecosystem.
 Installation
 ------------
 
+Linux
++++++
+
+On Linux, CLIPSPy is packaged for `x86_64` architectures as a wheel according to PEP-513_ guidelines.
+Most of the distributions should be supported.
+
+.. code:: bash
+
+    $ [sudo] pip install clipspy
+
 Windows
 +++++++
 
-CLIPSPy comes as a wheel for most of the Python versions and architectures. Therefore, it can be installed from Pip.
+CLIPSPy comes as a wheel for most of the Python versions and architectures.
 
 .. code:: batch
 
     > pip install clipspy
 
-Linux
-+++++
-
-Debian and derivates
-********************
-
-CLIPS 6.30 is available as Debian package in Unstable.
-
-.. code:: bash
-
-    # apt install libclips libclips-dev
-    # pip install clipspy
-
 Building from sources
-*********************
++++++++++++++++++++++
 
 The provided Makefile takes care of retrieving the CLIPS source code and compiling the Python bindings together with it.
 
 .. code:: bash
 
     $ make
-    # make install
+    $ sudo make install
 
-The following tools are required to build the sources.
-
- - gcc
- - make
- - wget
- - unzip
- - python
- - python-cffi
-
-The following conditional variables are accepted by the Makefile.
-
- - PYTHON: Python interpreter to use, default `python`
- - CLIPS_SOURCE_URL: Location from where to retrieve CLIPS source code archive.
- - SHARED_LIBRARY_DIR: Path where to install CLIPS shared library, default `/usr/lib`
+Please check the documentation_ for more information regarding building CLIPSPy from sources.
 
 Example
 -------
@@ -113,3 +97,5 @@ Example
 
 .. _CLIPS: http://www.clipsrules.net/
 .. _CFFI: https://cffi.readthedocs.io/en/latest/index.html
+.. _PEP-513: https://www.python.org/dev/peps/pep-0513/
+.. _documentation: https://clipspy.readthedocs.io
