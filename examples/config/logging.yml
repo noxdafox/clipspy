@@ -1,0 +1,29 @@
+version: 1
+
+formatters:
+  ch_formatter:
+    format: "[%(levelname)s] %(asctime)s.%(msecs)03d - %(name)s: %(message)s"
+    datefmt: "%d-%m-%Y %H:%M:%S"
+  fh_formatter:
+    format: "[%(levelname)s] %(asctime)s.%(msecs)03d - %(name)s: %(message)s"
+    datefmt: "%d-%m-%Y %H:%M:%S"
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: DEBUG
+    formatter: ch_formatter
+    stream: ext://sys.stdout
+  file:
+    class: logging.handlers.RotatingFileHandler
+    level: DEBUG
+    formatter: fh_formatter
+    filename: logs/log.log
+    mode: w
+    maxBytes: 100000000
+    backupCount: 10
+
+root:
+  level: DEBUG
+  handlers: [console, file]
+  propagate: yes
