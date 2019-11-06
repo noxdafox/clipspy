@@ -5,6 +5,8 @@ import importlib.util
 from collections import deque
 from queue import Queue
 import logging
+import time
+import sys
 
 
 logger = logging.getLogger(__name__)
@@ -68,7 +70,26 @@ class InvalidSlotFormat(Exception):
     pass
 
 
-class RulesEngine(object):
+class TicToc(object):
+    """
+    Utility class to measure execution times.
+    """
+    def __init__(self):
+        self._start_time = {}
+        self._end_time = {}
+        self._lapse_time = {}
+
+    def _tic(self, name:Text):
+        self._start_time[name] = time.time()
+
+    def _toc(self, name:Text):
+        self._end_time[name] = time.time()
+        self._lapse_time[name] = self._end_time.get(name, 0) - self._start_time.get(name, 0)
+
+    def _tictoc(self, name:Text):
+        return self._lapse_time.get(name, 0)
+
+class RulesEngine(TicToc):
     """
     Reasoner on RasAura slots.
 
@@ -94,6 +115,8 @@ class RulesEngine(object):
         :param functions_module_file: Python module from which functions will be loaded to be used within the
         call_function and set_slot_f constructs. This file is likely to be specific for every conversation domain.
         """
+        super().__init__()
+        self._tic("__init__")
         self.rules_file = rules_file
         self.functions_module_name = functions_module_name
         self.functions_module_file = functions_module_file
@@ -108,6 +131,12 @@ class RulesEngine(object):
 
         self.env = Environment()
         self.env.load(rules_file)
+
+        # This is the total number of rules fired during the execution of the reason() method.
+        self.num_fires = 0
+
+        self._toc("__init__")
+        logger.info("Rules engine created in {0:.3f} ms".format(self._tictoc("__init__") * 1000))
 
     def _import_package(self, package_name: Text):
         pck = __import__(package_name)
@@ -281,6 +310,7 @@ class RulesEngine(object):
                 ]
                 ```
         """
+        self._tic("set_facts")
         if isinstance(facts, dict):
             for k, v in facts.items():
                 if v is not None:
@@ -295,6 +325,8 @@ class RulesEngine(object):
                 # Only assert non None slots.
                 if _fact_value is not None:
                     self.assert_fact(_fact_name, _fact_value)
+        self._toc("set_facts")
+        logger.debug("Set facts into the rules engine in {:.3f} ms".format(self._tictoc("set_facts")*1000))
 
     def assert_plain_object(self, template_name: Text, obj: object):
         """
@@ -325,7 +357,14 @@ class RulesEngine(object):
         :param reason_limit: Maximum number of processing cycles allowed. This is a safety limit that never should be
         reached.
         """
+        self._tic("reason")
+        self.num_fires = 0
         self._reason(reason_limit=reason_limit)
+        self._toc("reason")
+        logger.debug("Rules engine reason() took {:.3f} ms. Facts asserted: {}. Rules defined: {}. Rules fired: {}".format(self._tictoc("reason")*1000,
+                                                                                              self.get_num_facts(),
+                                                                                              self.get_num_rules(),
+                                                                                              self.num_fires))
 
     def collect_resulting_slots(self, initial_slots: Dict[Text, UnorderedFactValue]) -> Dict[Text, UnorderedFactValue]:
         """
@@ -337,6 +376,7 @@ class RulesEngine(object):
         :param initial_slots: Initial slots to compare with.
         :return: A dictionary with the slot values changed (created, retracted or modified).
         """
+        self._tic("collect_resulting_slots")
         res = {}
         _num_slots = 0
         _slots_in_working_memory = {}
@@ -357,6 +397,8 @@ class RulesEngine(object):
         for slot_name, slot_value in _slots_in_working_memory:
             if slot_name not in initial_slots:
                 res[slot_name] = slot_value
+        self._toc("collect_resulting_slots")
+        logger.debug("Rules engine collect_resulting_slots() took {:.3f} ms".format(self._tictoc("collect_resulting_slots")*1000))
         return res
 
     def collect_fact_values(self, name: Text) -> List[Tuple[Text, UnorderedFactValue]]:
@@ -399,6 +441,7 @@ class RulesEngine(object):
 
         :return: A list with the values of the found facts.
         """
+        self._tic("collect_fact_values")
         res = []
         _num_slots = 0
         _slots_in_working_memory = {}
@@ -412,6 +455,8 @@ class RulesEngine(object):
                 else:
                     # TemplateFact. Unordered fact
                     res.append({k: v for k, v in f})
+        self._toc("collect_fact_values")
+        logger.debug("Rules engine collect_fact_values() took {:.3f} ms".format(self._tictoc("collect_fact_values")*1000))
         return res
 
 
@@ -613,12 +658,16 @@ class RulesEngine(object):
         """
         if reason_limit <= 0:
             raise ReasonLimitReached()
-        num_fires = self.env.run()
+        self._tic("_reason.self.env.run")
+        self.num_fires += self.env.run()
+        self._toc("_reason.self.env.run")
+        logger.debug("Rules engine _reason().self.env.run() took {:.3f} ms".format(self._tictoc("_reason.self.env.run")*1000))
         run_again = False
 
         # Look for 'slot_f', 'call_f', 'unique_slot', 'unique_slot_f', 'call_and_assert'
         _slots_to_assert = []
         _facts_to_retract = []
+        self._tic("_reason.loop_on_facts")
         for f in self.env.facts():
             template = f.template
             fact_items = list(f)
@@ -696,6 +745,8 @@ class RulesEngine(object):
                 _value = self._call_function(_function_name, *_args)
                 _facts_to_retract.append(f)
                 self.assert_fact(_fact_name, _value)
+        self._toc("_reason.loop_on_facts")
+        logger.debug("Rules engine _reason().loop_on_facts took {:.3f} ms".format(self._tictoc("_reason.loop_on_facts")*1000))
 
         for f in _facts_to_retract:
             f.retract()
@@ -762,6 +813,12 @@ class RulesEngine(object):
         """
         for f in self.env.facts():
             print(f)
+
+    def get_num_facts(self):
+        return len(list(self.env.facts()))
+
+    def get_num_rules(self):
+        return len(list(self.env.rules()))
 
 
 class RulesEnginePool(object):
