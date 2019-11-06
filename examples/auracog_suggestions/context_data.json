@@ -1,0 +1,513 @@
+{
+  "user1": {
+    "user": {
+      "id": "1234567890",
+      "type": 0,
+      "cluster_id": 0,
+      "channel_id": "movistar_home",
+      "at_home": true,
+      "stb": true
+    },
+
+    "general": {
+      "time_segment": 1,
+      "day_of_week": 1
+    },
+
+    "intent": [
+      {
+        "id": 21,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 22,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 23,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 24,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 25,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 41,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 42,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 43,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 44,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 45,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 46,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 47,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 48,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 49,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 51,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 52,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 53,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 71,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 72,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 91,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 92,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 111,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 131,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 132,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 151,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 152,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 171,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 172,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 173,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 191,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 200
+      },
+      {
+        "id": 192,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 2000
+      },
+      {
+        "id": 193,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 999999999
+      },
+      {
+        "id": 194,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 500
+      },
+      {
+        "id": 195,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 196,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 211,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 212,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 223,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 224,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 243,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 244,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 245,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 246,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 261,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 262,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 263,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 264,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 265,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      },
+      {
+        "id": 281,
+        "num_requested_day": 1,
+        "num_requested_week": 1,
+        "num_suggested_day": 1,
+        "num_suggested_week": 1,
+        "num_selected_day": 1,
+        "num_selected_week": 1,
+        "last_suggested": 40000
+      }
+    ],
+    "current_session": {
+      "intents": [192, 191, 194]
+    }
+  }
+}
