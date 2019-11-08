@@ -350,16 +350,25 @@ class RulesEngine(TicToc):
             fact[k] = v
         fact.assertit()
 
-    def reason(self, reason_limit=1000) -> Union[NoReturn, Dict[Text, UnorderedFactValue]]:
+    def reason(self, reason_limit=1000, mode="COMPLETE") -> Union[NoReturn, Dict[Text, UnorderedFactValue]]:
         """
         Executes the run command of Clips.
 
         :param reason_limit: Maximum number of processing cycles allowed. This is a safety limit that never should be
         reached.
+        :param mode: Mode of reasoning. The following modes are currently available:
+            - "COMPLETE" (default): Additional control logic is used to provide extra functionalities to the CLIPS
+              rules engine.. This includes:
+              - "Slot mode" for facts: data can be asserted as special facts with this structure:
+                    (slot <slot_name> <slot_value>)
+                This makes easier working with slot-like fact bases.
+              - Assertion of "unique slots". It is possible to force uniqueness of slot facts.
+            - "BASIC": Use CLIPS as it is, without any extra enhancement.
+
         """
         self._tic("reason")
         self.num_fires = 0
-        self._reason(reason_limit=reason_limit)
+        self._reason(reason_limit=reason_limit, mode=mode)
         self._toc("reason")
         logger.debug("Rules engine reason() took {:.3f} ms. Facts asserted: {}. Rules defined: {}. Rules fired: {}".format(self._tictoc("reason")*1000,
                                                                                               self.get_num_facts(),
@@ -651,11 +660,20 @@ class RulesEngine(TicToc):
         else:
             return item_list
 
-    def _reason(self, reason_limit=1000) -> Dict[Text, Any]:
+    def _reason(self, reason_limit=1000, mode="COMPLETE") -> Dict[Text, Any]:
         """
         :param slots:
         :param reason_limit:
+        :param mode: Mode of reasoning. The following modes are currently available:
+            - "COMPLETE" (default): Additional control logic is used to provide extra functionalities to the CLIPS
+              rules engine.. This includes:
+              - "Slot mode" for facts: data can be asserted as special facts with this structure:
+                    (slot <slot_name> <slot_value>)
+                This makes easier working with slot-like fact bases.
+              - Assertion of "unique slots". It is possible to force uniqueness of slot facts.
+            - "BASIC": Use CLIPS as it is, without any extra enhancement.
         """
+        assert mode in ["BASIC", "COMPLETE"]
         if reason_limit <= 0:
             raise ReasonLimitReached()
         self._tic("_reason.self.env.run")
@@ -664,98 +682,99 @@ class RulesEngine(TicToc):
         logger.debug("Rules engine _reason().self.env.run() took {:.3f} ms".format(self._tictoc("_reason.self.env.run")*1000))
         run_again = False
 
-        # Look for 'slot_f', 'call_f', 'unique_slot', 'unique_slot_f', 'call_and_assert'
-        _slots_to_assert = []
-        _facts_to_retract = []
-        self._tic("_reason.loop_on_facts")
-        for f in self.env.facts():
-            template = f.template
-            fact_items = list(f)
-            # ----------
-            # slot_f
-            if template.name == "slot_f":
-                run_again = True
-                _facts_to_retract.append(f)
-                if len(fact_items) == 0:
-                    raise InvalidSlotF("No slot name is provided in (slot_f)")
-                if len(fact_items) == 1:
-                    raise InvalidSlotF("No slot value is provided (slot_f)")
-                _slot_name = fact_items[0]
-                _function_name = fact_items[1]
-                _args = fact_items[2:]
-                _slot_value = self._call_function(_function_name, *_args)
+        if mode == "COMPLETE":
+            # Look for 'slot_f', 'call_f', 'unique_slot', 'unique_slot_f', 'call_and_assert'
+            _slots_to_assert = []
+            _facts_to_retract = []
+            self._tic("_reason.loop_on_facts")
+            for f in self.env.facts():
+                template = f.template
+                fact_items = list(f)
+                # ----------
+                # slot_f
+                if template.name == "slot_f":
+                    run_again = True
+                    _facts_to_retract.append(f)
+                    if len(fact_items) == 0:
+                        raise InvalidSlotF("No slot name is provided in (slot_f)")
+                    if len(fact_items) == 1:
+                        raise InvalidSlotF("No slot value is provided (slot_f)")
+                    _slot_name = fact_items[0]
+                    _function_name = fact_items[1]
+                    _args = fact_items[2:]
+                    _slot_value = self._call_function(_function_name, *_args)
+                    # Assert the new fact
+                    _slots_to_assert.append((_slot_name, _slot_value))
+                #-----------
+                # call_f
+                elif template.name == "call_f":
+                    assert(len(fact_items) > 0)
+                    if len(fact_items) == 0:
+                        raise InvalidCallF("No function name is provided in (call_f)")
+                    self._call_function(fact_items[0], *fact_items[1:])
+                #-----------
+                # unique_slot
+                elif template.name == "unique_slot":
+                    run_again = True
+                    if len(fact_items) == 0:
+                        raise InvalidUniqueSlot("No slot name is provided in (unique_slot)")
+                    if len(fact_items) == 1:
+                        raise InvalidUniqueSlot("No slot value is provided in (unique_slot)")
+                    _facts_to_retract.append(f)
+                    _slot_name = fact_items[0]
+                    _slot_value = self._get_slot_values_from_list(fact_items[1:])
+                    # Get the facts to retract and decide whether asserting a new fact is necessary.
+                    _new_facts_to_retract, _needs_to_assert = self._get_facts_to_retract_unique(_slot_name, _slot_value)
+                    for r_f in _new_facts_to_retract:
+                        _facts_to_retract.append(r_f)
+                    if _needs_to_assert:
+                        # Assert the new fact
+                        _slots_to_assert.append((_slot_name, _slot_value))
+                #-----------
+                # unique_slot_f
+                elif template.name == "unique_slot_f":
+                    run_again = True
+                    if len(fact_items) == 0:
+                        raise InvalidUniqueSlotF("No slot name is provided in (unique_slot_f)")
+                    if len(fact_items) == 1:
+                        raise InvalidUniqueSlotF("No function name is provided in (unique_slot_f)")
+                    _facts_to_retract.append(f)
+                    _slot_name = fact_items[0]
+                    _function_name = fact_items[1]
+                    _args = fact_items[2:]
+                    _slot_value = self._call_function(_function_name, *_args)
+                    # Get the facts to retract and decide whether asserting a new fact is necessary.
+                    _new_facts_to_retract, _needs_to_assert = self._get_facts_to_retract_unique(_slot_name, _slot_value)
+                    for r_f in _new_facts_to_retract:
+                        _facts_to_retract.append(r_f)
+                    if _needs_to_assert:
+                        # Assert the new fact
+                        _slots_to_assert.append((_slot_name, _slot_value))
+                # ----------
+                # call_and_assert
+                elif template.name == "call_and_assert":
+                    assert(len(fact_items) > 0)
+                    if len(fact_items) == 0:
+                        raise InvalidCallAndAssert("No fact name is provided in (call_and_assert)")
+                    if len(fact_items) == 1:
+                        raise InvalidCallAndAssert("No function name is provided in (call_and_assert)")
+                    _fact_name = fact_items[0]
+                    _function_name = fact_items[1]
+                    _args = fact_items[2:]
+                    _value = self._call_function(_function_name, *_args)
+                    _facts_to_retract.append(f)
+                    self.assert_fact(_fact_name, _value)
+            self._toc("_reason.loop_on_facts")
+            logger.debug("Rules engine _reason().loop_on_facts took {:.3f} ms".format(self._tictoc("_reason.loop_on_facts")*1000))
+
+            for f in _facts_to_retract:
+                f.retract()
+            for _s in _slots_to_assert:
                 # Assert the new fact
-                _slots_to_assert.append((_slot_name, _slot_value))
-            #-----------
-            # call_f
-            elif template.name == "call_f":
-                assert(len(fact_items) > 0)
-                if len(fact_items) == 0:
-                    raise InvalidCallF("No function name is provided in (call_f)")
-                self._call_function(fact_items[0], *fact_items[1:])
-            #-----------
-            # unique_slot
-            elif template.name == "unique_slot":
-                run_again = True
-                if len(fact_items) == 0:
-                    raise InvalidUniqueSlot("No slot name is provided in (unique_slot)")
-                if len(fact_items) == 1:
-                    raise InvalidUniqueSlot("No slot value is provided in (unique_slot)")
-                _facts_to_retract.append(f)
-                _slot_name = fact_items[0]
-                _slot_value = self._get_slot_values_from_list(fact_items[1:])
-                # Get the facts to retract and decide whether asserting a new fact is necessary.
-                _new_facts_to_retract, _needs_to_assert = self._get_facts_to_retract_unique(_slot_name, _slot_value)
-                for r_f in _new_facts_to_retract:
-                    _facts_to_retract.append(r_f)
-                if _needs_to_assert:
-                    # Assert the new fact
-                    _slots_to_assert.append((_slot_name, _slot_value))
-            #-----------
-            # unique_slot_f
-            elif template.name == "unique_slot_f":
-                run_again = True
-                if len(fact_items) == 0:
-                    raise InvalidUniqueSlotF("No slot name is provided in (unique_slot_f)")
-                if len(fact_items) == 1:
-                    raise InvalidUniqueSlotF("No function name is provided in (unique_slot_f)")
-                _facts_to_retract.append(f)
-                _slot_name = fact_items[0]
-                _function_name = fact_items[1]
-                _args = fact_items[2:]
-                _slot_value = self._call_function(_function_name, *_args)
-                # Get the facts to retract and decide whether asserting a new fact is necessary.
-                _new_facts_to_retract, _needs_to_assert = self._get_facts_to_retract_unique(_slot_name, _slot_value)
-                for r_f in _new_facts_to_retract:
-                    _facts_to_retract.append(r_f)
-                if _needs_to_assert:
-                    # Assert the new fact
-                    _slots_to_assert.append((_slot_name, _slot_value))
-            # ----------
-            # call_and_assert
-            elif template.name == "call_and_assert":
-                assert(len(fact_items) > 0)
-                if len(fact_items) == 0:
-                    raise InvalidCallAndAssert("No fact name is provided in (call_and_assert)")
-                if len(fact_items) == 1:
-                    raise InvalidCallAndAssert("No function name is provided in (call_and_assert)")
-                _fact_name = fact_items[0]
-                _function_name = fact_items[1]
-                _args = fact_items[2:]
-                _value = self._call_function(_function_name, *_args)
-                _facts_to_retract.append(f)
-                self.assert_fact(_fact_name, _value)
-        self._toc("_reason.loop_on_facts")
-        logger.debug("Rules engine _reason().loop_on_facts took {:.3f} ms".format(self._tictoc("_reason.loop_on_facts")*1000))
+                self.assert_fact(_s[0], _s[1])
 
-        for f in _facts_to_retract:
-            f.retract()
-        for _s in _slots_to_assert:
-            # Assert the new fact
-            self.assert_fact(_s[0], _s[1])
-
-        if run_again:
-            self._reason(reason_limit - 1)
+            if run_again:
+                self._reason(reason_limit - 1)
 
     def _get_facts_to_retract_unique(self, slot_name: Text, slot_value: Any) -> Tuple[Union[List[ImpliedFact], bool]]:
         """

@@ -117,7 +117,7 @@ class RulesBasedIntentSuggestions(object):
 
         # 2. Reason
         engine.set_facts(properties_list)
-        engine.reason(reason_limit=self.max_reasons_per_cycle)
+        engine.reason(reason_limit=self.max_reasons_per_cycle, mode="BASIC")
 
         # 3. Build results
         # The facts containing the results are expected to have this form: (slot intent_suggestion <intent_id> <score>)
