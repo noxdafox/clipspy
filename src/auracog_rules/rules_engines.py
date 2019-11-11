@@ -1,16 +1,15 @@
 from typing import Any, Dict, List, NewType, Text, Tuple, Union, NoReturn
 from clips import Environment, ImpliedFact, TemplateFact
 from clips.common import Symbol
-import importlib.util
+from .utils import get_functions_from_module_name
+
 from collections import deque
 from queue import Queue
 import logging
 import time
-import sys
 
 
 logger = logging.getLogger(__name__)
-
 
 SYMBOL_TRUE = Symbol("True")
 SYMBOL_FALSE = Symbol("False")
@@ -105,31 +104,22 @@ class RulesEngine(TicToc):
       value returned by the call <function_name>([<propositional_argument>]*)
     """
 
-    def __init__(self, rules_file: Text, functions_package_name: Text= None,
-                 functions_module_name: Text= None, functions_module_file: Text= None):
+    def __init__(self, rules_file: Text, functions_package_name: Text= None):
         """
         :param rules_file: File containing the Clips definition of the rules.
         :param functions_package_name: The name of the package containing the functions that will be used in the rules.
-            If this parameter is set 'functions_module_name' and 'functions_module_file' will not be used.
-        :param functions_module_name: The name of the functions module to be loaded.
-        :param functions_module_file: Python module from which functions will be loaded to be used within the
-        call_function and set_slot_f constructs. This file is likely to be specific for every conversation domain.
         """
         super().__init__()
         self._tic("__init__")
         self.rules_file = rules_file
-        self.functions_module_name = functions_module_name
-        self.functions_module_file = functions_module_file
+
+        self.env = Environment()
 
         if functions_package_name is not None:
             self.functions_package_name = functions_package_name
-            self.functions_package = self._import_package(functions_package_name)
-        elif functions_module_file is not None:
-            self.spec = importlib.util.spec_from_file_location(functions_module_name, functions_module_file)
-            self.functions_module = importlib.util.module_from_spec(self.spec)
-            self.spec.loader.exec_module(self.functions_module)
+            for f in get_functions_from_module_name(functions_package_name):
+                self.env.define_function(f)
 
-        self.env = Environment()
         self.env.load(rules_file)
 
         # This is the total number of rules fired during the execution of the reason() method.
@@ -469,32 +459,29 @@ class RulesEngine(TicToc):
         return res
 
 
-    def update_slots_and_reason(self, invalidated_slots_dict: Dict[Text, Any],
-                                slots_snapshot_dict: Dict[Text, Any], reason_limit=1000) -> Dict[Text, Any]:
-        """
-
-        :param invalidated_slots_dict:
-        :param slots_snapshot_dict:
-        :param reason_limit:
-        :return:
-        """
-        for slot_name, slot_value in invalidated_slots_dict.items():
-            self._retract_slots_by_name(slot_name)
-            self._assert_slot(slot_name, slot_value)
-        self._reason(reason_limit=reason_limit)
-        # Collect facts
-        return self._collect_resulting_slots(slots_snapshot_dict)
+    # def update_slots_and_reason(self, invalidated_slots_dict: Dict[Text, Any],
+    #                             slots_snapshot_dict: Dict[Text, Any], reason_limit=1000) -> Dict[Text, Any]:
+    #     """
+    #
+    #     :param invalidated_slots_dict:
+    #     :param slots_snapshot_dict:
+    #     :param reason_limit:
+    #     :return:
+    #     """
+    #     for slot_name, slot_value in invalidated_slots_dict.items():
+    #         self._retract_slots_by_name(slot_name)
+    #         self._assert_slot(slot_name, slot_value)
+    #     self._reason(reason_limit=reason_limit)
+    #     # Collect facts
+    #     return self._collect_resulting_slots(slots_snapshot_dict)
 
 
     def update_slots_and_reason(self, updated_slots_dict: Dict[Text, OrderedFactValue],
-                                slots_snapshot_dict: Dict[Text, OrderedFactValue],
                                 reason_limit=1000) -> Dict[Text, OrderedFactValue]:
         """
-        This method updates the values of a set of slots and reason on these changes again (run the rules engine).
+        This method updates the values of a set of slots and reasons on these changes again (run the rules engine).
 
         :param updated_slots_dict: Dictionary with the updated slots (key: slot name, value: new slot value).
-        :param slots_snapshot_dict: Dictionary with the current slot values to compare with in the collection of
-            resulting slots.
         :param reason_limit: Maximum number of reasoning cycles allowed.
 
         :return: The resulting slot values from the current execution.
@@ -628,19 +615,6 @@ class RulesEngine(TicToc):
             return '"{}"'.format(slot_value)
         return str(slot_value)
 
-    # def _assert_ordered_fact(self, fact_name: Text, value: OrderedFactValue):
-    #     """
-    #     Assert an ordered fact into the working memory.
-    #
-    #     :param fact_name: The name of the fact.
-    #     :param value: Value or list of values. If it has more than one element, they are asserted as ordered
-    #       values into the corresponding ordered fact. e. g.: (fact_name value_1 value_2 value_3).
-    #     """
-    #     if type(value) == list or type(value) == tuple:
-    #         self.env.assert_string("({} {})".format(fact_name, " ".join([str(v) for v in value])))
-    #     else:
-    #         self.env.assert_string("({} {})".format(fact_name, value))
-
     def _get_slot_values_from_list(self, item_list: List[SimpleFactValue]) -> OrderedFactValue:
         """
         # TODO Review
@@ -683,38 +657,16 @@ class RulesEngine(TicToc):
         run_again = False
 
         if mode == "COMPLETE":
-            # Look for 'slot_f', 'call_f', 'unique_slot', 'unique_slot_f', 'call_and_assert'
+            # Look for 'unique_slot', 'unique_slot_f', 'call_and_assert'
             _slots_to_assert = []
             _facts_to_retract = []
             self._tic("_reason.loop_on_facts")
             for f in self.env.facts():
                 template = f.template
-                fact_items = list(f)
-                # ----------
-                # slot_f
-                if template.name == "slot_f":
-                    run_again = True
-                    _facts_to_retract.append(f)
-                    if len(fact_items) == 0:
-                        raise InvalidSlotF("No slot name is provided in (slot_f)")
-                    if len(fact_items) == 1:
-                        raise InvalidSlotF("No slot value is provided (slot_f)")
-                    _slot_name = fact_items[0]
-                    _function_name = fact_items[1]
-                    _args = fact_items[2:]
-                    _slot_value = self._call_function(_function_name, *_args)
-                    # Assert the new fact
-                    _slots_to_assert.append((_slot_name, _slot_value))
-                #-----------
-                # call_f
-                elif template.name == "call_f":
-                    assert(len(fact_items) > 0)
-                    if len(fact_items) == 0:
-                        raise InvalidCallF("No function name is provided in (call_f)")
-                    self._call_function(fact_items[0], *fact_items[1:])
                 #-----------
                 # unique_slot
-                elif template.name == "unique_slot":
+                if template.name == "unique_slot":
+                    fact_items = list(f)
                     run_again = True
                     if len(fact_items) == 0:
                         raise InvalidUniqueSlot("No slot name is provided in (unique_slot)")
@@ -730,40 +682,6 @@ class RulesEngine(TicToc):
                     if _needs_to_assert:
                         # Assert the new fact
                         _slots_to_assert.append((_slot_name, _slot_value))
-                #-----------
-                # unique_slot_f
-                elif template.name == "unique_slot_f":
-                    run_again = True
-                    if len(fact_items) == 0:
-                        raise InvalidUniqueSlotF("No slot name is provided in (unique_slot_f)")
-                    if len(fact_items) == 1:
-                        raise InvalidUniqueSlotF("No function name is provided in (unique_slot_f)")
-                    _facts_to_retract.append(f)
-                    _slot_name = fact_items[0]
-                    _function_name = fact_items[1]
-                    _args = fact_items[2:]
-                    _slot_value = self._call_function(_function_name, *_args)
-                    # Get the facts to retract and decide whether asserting a new fact is necessary.
-                    _new_facts_to_retract, _needs_to_assert = self._get_facts_to_retract_unique(_slot_name, _slot_value)
-                    for r_f in _new_facts_to_retract:
-                        _facts_to_retract.append(r_f)
-                    if _needs_to_assert:
-                        # Assert the new fact
-                        _slots_to_assert.append((_slot_name, _slot_value))
-                # ----------
-                # call_and_assert
-                elif template.name == "call_and_assert":
-                    assert(len(fact_items) > 0)
-                    if len(fact_items) == 0:
-                        raise InvalidCallAndAssert("No fact name is provided in (call_and_assert)")
-                    if len(fact_items) == 1:
-                        raise InvalidCallAndAssert("No function name is provided in (call_and_assert)")
-                    _fact_name = fact_items[0]
-                    _function_name = fact_items[1]
-                    _args = fact_items[2:]
-                    _value = self._call_function(_function_name, *_args)
-                    _facts_to_retract.append(f)
-                    self.assert_fact(_fact_name, _value)
             self._toc("_reason.loop_on_facts")
             logger.debug("Rules engine _reason().loop_on_facts took {:.3f} ms".format(self._tictoc("_reason.loop_on_facts")*1000))
 
@@ -776,14 +694,16 @@ class RulesEngine(TicToc):
             if run_again:
                 self._reason(reason_limit - 1)
 
-    def _get_facts_to_retract_unique(self, slot_name: Text, slot_value: Any) -> Tuple[Union[List[ImpliedFact], bool]]:
+    def _get_facts_to_retract_unique(self, slot_name: Text, slot_value: Any) -> Tuple[List[ImpliedFact], bool]:
         """
         Get which facts need to be retracted from the working memory to ensure that the fact (slot <slot_name> <slot_value>)
         is unique.
         If that fact already exists, keep it to prevent racing conditions due to unlimited rules chaining.
         If more than one facts with same slot name and value, only one of them is left.
+
         :param slot_name: The slot name
         :param slot_value: The slot value
+
         :return: List with two elements: a list with the facts to retract and a boolean indicating whether the new fact
         needs to be asserted.
         """
@@ -802,23 +722,23 @@ class RulesEngine(TicToc):
             else:
                 # This is a repeated fact that must be retracted.
                 facts_to_retract.append(r_f)
-        return (facts_to_retract, needs_to_assert)
+        return facts_to_retract, needs_to_assert
 
-    def _call_function(self, function_name: Text, *argv):
-        """
-        Calls a function given its name, module and arguments.
-        Currently only positional arguments are supported.
-
-        :param function_name:
-        :param argv:
-        """
-        if self.functions_package is not None:
-            function_to_call = getattr(self.functions_package, function_name)
-        elif self.functions_module is not None:
-            function_to_call = getattr(self.functions_module, function_name)
-        else:
-            raise FuctionsPackageNotSet("NO functions package/module has been cpnfigured.")
-        return function_to_call(*argv)
+    # def _call_function(self, function_name: Text, *argv):
+    #     """
+    #     Calls a function given its name, module and arguments.
+    #     Currently only positional arguments are supported.
+    #
+    #     :param function_name:
+    #     :param argv:
+    #     """
+    #     if self.functions_package is not None:
+    #         function_to_call = getattr(self.functions_package, function_name)
+    #     elif self.functions_module is not None:
+    #         function_to_call = getattr(self.functions_module, function_name)
+    #     else:
+    #         raise FuctionsPackageNotSet("NO functions package/module has been cpnfigured.")
+    #     return function_to_call(*argv)
 
     def reset(self):
         """
@@ -850,7 +770,6 @@ class RulesEnginePool(object):
 
     @classmethod
     def get_instance(cls, pool_name: Text, rules_file: Text= None, functions_package_name: Text= None,
-                    functions_module_name: Text = None, functions_module_file: Text = None,
                     pool_size: int= -1, initial_pool_size: int= 5) -> 'RulesEnginePool':
         """
         This method is used to instantiate rules engines pools.
@@ -864,9 +783,6 @@ class RulesEnginePool(object):
         :param rules_file: File with the definition of the rules to be loaded into the engine.
         :param functions_package_name: The name of the package containing the functions that will be used in the rules.
           If this parameter is set 'functions_module_name' and 'functions_module_file' will not be used.
-        :param functions_module_name: The name of the functions module to be loaded.
-        :param functions_module_file: Python module from which functions will be loaded to be used within the
-        call_function and set_slot_f constructs. This file is likely to be specific for every conversation domain.
         :param pool_size: Number of rules engines in the pool. If -1, the number of engines is not limited.
         :param initial_pool_size: The initial number of pools to be preloaded at instantiation time.
         :return: A RuesEnginePool instance.
@@ -875,29 +791,23 @@ class RulesEnginePool(object):
             return RulesEnginePool.pool_dict[pool_name]
         else:
             pool = RulesEnginePool(pool_name, rules_file, functions_package_name=functions_package_name,
-                     functions_module_name=functions_module_name, functions_module_file=functions_module_file,
                      pool_size=pool_size, initial_pool_size=initial_pool_size)
             cls.pool_dict[pool_name] = pool
             return pool
 
-    def __init__(self, pool_name: Text, rules_file: Text, functions_package_name: Text= None, functions_module_name: Text = None,
-                 functions_module_file: Text = None, pool_size: int= -1, initial_pool_size: int= 5):
+    def __init__(self, pool_name: Text, rules_file: Text, functions_package_name: Text= None,
+                 pool_size: int= -1, initial_pool_size: int= 5):
         """
         :param pool_name: The name of the pool.
         :param rules_file: File with the definition of the rules to be loaded into the engine.
         :param functions_package_name: The name of the package containing the functions that will be used in the rules.
           If this parameter is set 'functions_module_name' and 'functions_module_file' will not be used.
-        :param functions_module_name: The name of the functions module to be loaded.
-        :param functions_module_file: Python module from which functions will be loaded to be used within the
-        call_function and set_slot_f constructs. This file is likely to be specific for every conversation domain.
         :param pool_size: Number of rules engines in the pool. If -1, the number of engines is not limited.
         :param initial_pool_size: The initial number of pools to be preloaded at instantiation time.
         """
         self.pool_nname = pool_name
         self.rules_file = rules_file
         self.functions_package_name = functions_package_name
-        self.functions_module_name = functions_module_name
-        self.functions_module_file = functions_module_file
         self.pool_size = pool_size
         self.initial_pool_size = initial_pool_size
         self.busy_engines = deque()
@@ -910,8 +820,10 @@ class RulesEnginePool(object):
         Creates a new rules engine and loads rules on it.
         :return: The new rules engine.
         """
-        return RulesEngine(self.rules_file, self.functions_package_name,
-                           self.functions_module_file, self.functions_module_file)
+#        return RulesEngine(self.rules_file, self.functions_package_name,
+#                           self.functions_module_file, self.functions_module_file)
+        return RulesEngine(self.rules_file, self.functions_package_name)
+
 
     def _preload_rules_engines(self):
         """
