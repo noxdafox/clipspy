@@ -144,4 +144,11 @@
 )
 
 
+(defrule python_functions_test "This is a test rule, just to check that calling a python function from a rule is working"
+    (not (python_functions_test))
+    =>
+    (assert (python_functions_test))
+    (print_test "This is a test")
+)
+
 
