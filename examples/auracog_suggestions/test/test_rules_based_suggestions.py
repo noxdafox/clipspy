@@ -25,8 +25,8 @@ def main():
     logger = logging.getLogger(__name__)
 
     name = "rules_based_suggestions"
-    rules_file = "../examples/auracog_suggestions/exploratory_intent_suggestions_rules.clp"
-    functions_package_name = None
+    rules_files = ["../examples/auracog_suggestions/exploratory_intent_suggestions_rules.clp"]
+    functions_package_name = "auracog_suggestions.custom_functions"
     pool_size = -1
     initial_pool_size = 2
     max_reason_cycles = 10
@@ -34,7 +34,7 @@ def main():
     assert_as_multiple = ["intent"]
 
     logger.debug("Instantiating suggestions model")
-    sug = RulesBasedIntentSuggestions(name, rules_file, functions_package_name=functions_package_name,
+    sug = RulesBasedIntentSuggestions(name, rules_files, functions_package_name=functions_package_name,
                                       pool_size=pool_size, initial_pool_size=initial_pool_size,
                                       max_reason_cycles=max_reason_cycles,
                                       max_reasons_per_cycle=max_reasons_per_cycle,
