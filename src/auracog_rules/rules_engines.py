@@ -2,6 +2,7 @@ from typing import Any, Dict, List, NewType, Text, Tuple, Union, NoReturn
 from clips import Environment, ImpliedFact, TemplateFact
 from clips.common import Symbol
 from .utils import get_functions_from_module_name
+#from.rules_engines_persistence import RulesEnginesStore
 
 from collections import deque
 from queue import Queue
@@ -68,6 +69,12 @@ class InvalidSlotFormat(Exception):
     """
     pass
 
+class PersistenceError(Exception):
+    """
+    This exception is raised when an error in writing / reading persistent the state of a rules engine from a persistent
+    store occurs.
+    """
+    pass
 
 class TicToc(object):
     """
@@ -104,23 +111,27 @@ class RulesEngine(TicToc):
       value returned by the call <function_name>([<propositional_argument>]*)
     """
 
-    def __init__(self, rules_file: Text, functions_package_name: Text= None):
+    def __init__(self, rules_files: List[Text], functions_package_name: Text= None):
         """
-        :param rules_file: File containing the Clips definition of the rules.
+        :param rules_files: List of files containing the Clips definition of the rules. Files are provided following
+            their intended loading order. For instance, if file_2 uses constructs defined in file_1 then the following
+            list must be provided [file_1, file_2].
         :param functions_package_name: The name of the package containing the functions that will be used in the rules.
         """
         super().__init__()
         self._tic("__init__")
-        self.rules_file = rules_file
+        self.rules_files = rules_files
 
         self.env = Environment()
 
         if functions_package_name is not None:
             self.functions_package_name = functions_package_name
             for f in get_functions_from_module_name(functions_package_name):
+                logger.info("Defining function {}".format(f.__name__))
                 self.env.define_function(f)
 
-        self.env.load(rules_file)
+        for rf in rules_files:
+            self.env.load(rf)
 
         # This is the total number of rules fired during the execution of the reason() method.
         self.num_fires = 0
@@ -340,7 +351,7 @@ class RulesEngine(TicToc):
             fact[k] = v
         fact.assertit()
 
-    def reason(self, reason_limit=1000, mode="COMPLETE") -> Union[NoReturn, Dict[Text, UnorderedFactValue]]:
+    def reason(self, reason_limit=1000, mode="BASIC") -> Union[NoReturn, Dict[Text, UnorderedFactValue]]:
         """
         Executes the run command of Clips.
 
@@ -634,7 +645,7 @@ class RulesEngine(TicToc):
         else:
             return item_list
 
-    def _reason(self, reason_limit=1000, mode="COMPLETE") -> Dict[Text, Any]:
+    def _reason(self, reason_limit=1000, mode="BASIC") -> Dict[Text, Any]:
         """
         :param slots:
         :param reason_limit:
@@ -763,14 +774,15 @@ class RulesEngine(TicToc):
 class RulesEnginePool(object):
     """
     Pool of rules engines.
+    The pool also manages persistence of rules engines through a RulesEnginesEstore.
     """
 
     # Dictionary of rules engines pools.
     pool_dict = {}
 
     @classmethod
-    def get_instance(cls, pool_name: Text, rules_file: Text= None, functions_package_name: Text= None,
-                    pool_size: int= -1, initial_pool_size: int= 5) -> 'RulesEnginePool':
+    def get_instance(cls, pool_name: Text, rules_files: List[Text]= None, functions_package_name: Text= None,
+                    pool_size: int= -1, initial_pool_size: int= 5, store: 'RulesEnginesStore'= None) -> 'RulesEnginePool':
         """
         This method is used to instantiate rules engines pools.
         Different pools can be instantiated using different pool names. Using this method ensures that only one
@@ -780,23 +792,27 @@ class RulesEnginePool(object):
         released.
 
         :param pool_name:
-        :param rules_file: File with the definition of the rules to be loaded into the engine.
+        :param rules_files: List of files containing the Clips definition of the rules. Files are provided following
+            their intended loading order. For instance, if file_2 uses constructs defined in file_1 then the following
+            list must be provided [file_1, file_2].
         :param functions_package_name: The name of the package containing the functions that will be used in the rules.
           If this parameter is set 'functions_module_name' and 'functions_module_file' will not be used.
         :param pool_size: Number of rules engines in the pool. If -1, the number of engines is not limited.
         :param initial_pool_size: The initial number of pools to be preloaded at instantiation time.
+        :param store: A RulesEnginesStore to save persistent states.
+
         :return: A RuesEnginePool instance.
         """
         if pool_name in cls.pool_dict:
             return RulesEnginePool.pool_dict[pool_name]
         else:
-            pool = RulesEnginePool(pool_name, rules_file, functions_package_name=functions_package_name,
-                     pool_size=pool_size, initial_pool_size=initial_pool_size)
+            pool = RulesEnginePool(pool_name, rules_files, functions_package_name=functions_package_name,
+                     pool_size=pool_size, initial_pool_size=initial_pool_size, store=store)
             cls.pool_dict[pool_name] = pool
             return pool
 
     def __init__(self, pool_name: Text, rules_file: Text, functions_package_name: Text= None,
-                 pool_size: int= -1, initial_pool_size: int= 5):
+                 pool_size: int= -1, initial_pool_size: int= 5, store: 'RulesEnginesStore'= None):
         """
         :param pool_name: The name of the pool.
         :param rules_file: File with the definition of the rules to be loaded into the engine.
@@ -804,8 +820,9 @@ class RulesEnginePool(object):
           If this parameter is set 'functions_module_name' and 'functions_module_file' will not be used.
         :param pool_size: Number of rules engines in the pool. If -1, the number of engines is not limited.
         :param initial_pool_size: The initial number of pools to be preloaded at instantiation time.
+        :param store: A RulesEnginesStore to save persistent states.
         """
-        self.pool_nname = pool_name
+        self.pool_name = pool_name
         self.rules_file = rules_file
         self.functions_package_name = functions_package_name
         self.pool_size = pool_size
@@ -814,16 +831,14 @@ class RulesEnginePool(object):
         self.idle_engines = Queue()
         if initial_pool_size is not None and initial_pool_size > 0:
             self._preload_rules_engines()
+        self.store = store
 
     def _create_and_load_rules_engine(self) -> RulesEngine:
         """
         Creates a new rules engine and loads rules on it.
         :return: The new rules engine.
         """
-#        return RulesEngine(self.rules_file, self.functions_package_name,
-#                           self.functions_module_file, self.functions_module_file)
         return RulesEngine(self.rules_file, self.functions_package_name)
-
 
     def _preload_rules_engines(self):
         """
@@ -832,7 +847,7 @@ class RulesEnginePool(object):
         for i in range(self.initial_pool_size):
             self.idle_engines.put(self._create_and_load_rules_engine())
 
-    def acquire_rules_engine(self) -> RulesEngine:
+    def _acquire_rules_engine(self) -> RulesEngine:
         """
         Acquires a rules engine from the pool. If there is not any available engine then the current process is blocked
         until one is ready.
@@ -846,12 +861,70 @@ class RulesEnginePool(object):
         self.busy_engines.append(engine)
         return engine
 
-    def release_rules_engine(self, rules_engine: RulesEngine):
+    def acquire_rules_engine(self, id: Text= None) -> RulesEngine:
+        """
+        Acquires a rules engine from the pool. If there is not any available engine then the current process is blocked
+        until one is ready.
+        If a not None `id` is provided the previously stored persistent state coresponding to this id is tried to be
+        loaded into the engine. If no information is found for the id then the rules engine in returned empty.
+        The management of the persistence id is made externally to the rules engine pool.
+
+        :param id: The id of the persistent state. If None, no persistent state is loaded.
+
+        :return: An idle rules engine.
+        """
+        rules_engine = self._acquire_rules_engine()
+        if id is not None:
+            self.load_persisted_state(rules_engine, id)
+        return rules_engine
+
+    def release_rules_engine(self, rules_engine: RulesEngine, id: Text= None):
         """
         Releases a rules engine and marks it as idle. Just after releasing a reset operation is executed on the engine
         to reinitialize it.
-        :param rules_engine:
+        :param rules_engine: The rules engine to release.
+        :param id: If not None, persist the current state of the rules engine into this id. Default: None.
         """
+        if id is not None:
+            self.persist_engine(rules_engine, id)
         self.busy_engines.remove(rules_engine)
         rules_engine.reset()
         self.idle_engines.put(rules_engine)
+
+    def persist_engine(self, rules_engine: RulesEngine, id: Text):
+        """
+        Save the current state of a rules engine into a persistent storage.
+
+        :param rules_engine:
+        :param id:
+        """
+        if self.store is None:
+            raise PersistenceError("No RulesEngineStore has been configured!")
+        else:
+            logger.debug('Saving persisted state for id="{}"'.format(id))
+            self.store.save_persistent_state(rules_engine, id)
+
+    def load_persisted_state(self, rules_engine: RulesEngine, id: Text):
+        """
+        Load a persisted state into a rules engine.
+
+        :param rules_engine:
+        :param id: The id of the persisted state.
+        """
+        if self.store is None:
+            raise PersistenceError("No RulesEngineStore has been configured!")
+        else:
+            logger.debug('Reading persisted state for id="{}"'.format(id))
+            self.store.load_persistent_state(rules_engine, id)
+
+    def clear_persistent_state(self, id: Text):
+        """
+        Clears the persisted state identified by a given id.
+
+        :param id: The identifier to clear.
+        """
+        if self.store is None:
+            logger.debug('Clearing persisted state for id="{}"'.format(id))
+            raise PersistenceError("No RulesEngineStore has been configured!")
+        else:
+            self.store.clear_persistent_state(id)
