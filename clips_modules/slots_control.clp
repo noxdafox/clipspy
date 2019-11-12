@@ -22,7 +22,7 @@
 		(retract ?f)
 	)
 	; 2. Check if the same slot is already asserted. If so, do nothing. Else, assert the fact.
-	; This check is inteneded to avoid unecessary reaserting of facts.
+	; This check is intended to avoid unnecessary reasserting of facts.
 	(bind ?rem_facts (find-all-facts ((?f SLOT)) (eq ?f:name ?name)))
 	(if (= (length$ ?rem_facts) 0) then
 			(assert (SLOT (name ?name) (value ?value)))
@@ -40,7 +40,7 @@
 		(retract ?f)
 	)
 	; 2. Check if the same slot is already asserted. If so, do nothing. Else, assert the fact.
-	; This check is inteneded to avoid unecessary reaserting of facts.
+	; This check is intended to avoid unnecessary reasserting of facts.
 	(bind ?rem_facts (find-all-facts ((?f MSLOT)) (eq ?f:name ?name)))
 	(if (= (length$ ?rem_facts) 0) then
 			(assert (MSLOT (name ?name) (value ?value)))
