@@ -62,6 +62,9 @@ class LocalFileRulesEngineStore(RulesEnginesStore):
         _path = self._build_path(id)
         if os.path.exists(_path):
             rules_engine.env.eval("(load-facts {})".format(self._build_path(id)))
+            # Clear all activations in agenda
+            logger.debug("Clearing agenda after facts load")  # Debug
+            rules_engine.env._agenda.clear()
         else:
             logger.warn('No persisted state found for id="{}"'.format(id))
 
