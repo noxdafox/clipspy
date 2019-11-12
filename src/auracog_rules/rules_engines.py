@@ -598,7 +598,7 @@ class RulesEngine(TicToc):
         :param fact_value: Value or list of values for the slot.
         """
         if type(fact_value) == list or type(fact_value) == tuple:
-            self.env.assert_string("(slot {} {})".format(fact_name, " ".join([self._encode_slot_value(v) for v in fact_value])))
+            self.env.assert_string("({} {})".format(fact_name, " ".join([self._encode_slot_value(v) for v in fact_value])))
         elif type(fact_value) == dict:
             self.assert_dictionary(fact_name, fact_value)
         else:
