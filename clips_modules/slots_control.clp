@@ -11,7 +11,9 @@
 
 ; This assertion is needed to force the implicit definition of the deftemplate 'slot', which is used in the
 ; count-slots and assert_unique_slot functions.
-(assert (slot __initial_slot__))
+(deffacts initial_slot
+    (slot __initial_slot__)
+)
 
 (deffunction count-slots (?name)
 	(bind ?count 0)
@@ -39,6 +41,8 @@
 )
 
 ; Retract the (slot __initial_slot) fact since it is not longer needed.
-(do-for-all-facts ((?f slot)) (eq (nth$ 1 ?f:implied) __initial_slot__)
+(defrule retract_initial_slot "This rule retracts the __initial_slot__ rule, needed for managing unique slots"
+    ?f <- (slot __initial__slot__)
+    =>
     (retract ?f)
 )
