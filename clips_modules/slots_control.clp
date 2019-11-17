@@ -1,31 +1,35 @@
 ;
-; This module defines data structures and functions used to manage SLOTS.
-;
-; A SLOT is an unordered fact with two fields:
-;    - name: The name of the slot.
-;    - value: A single value.
-;
-; An MSLOT is an unordered fact with two fields:
-;    - name: The name of the slot.
-;    - value: A multiple value (list or multislot)
-;
-; SLOT facts are supposed to be unique, i.e. only one fact or a given name should exist at a given time.
-; To ensure uniqueness use the functions 'assert_unique_slot' and 'assert_unique_mslot'.
+; This module defines functions to uniquely assert slot type facts.
 ;
 
-(deftemplate SLOT (slot name (type STRING)) (slot value))
-(deftemplate MSLOT (slot name (type STRING)) (multislot value))
+(deffunction count-facts (?template)
+	(bind ?count 0)
+	(do-for-all-facts ((?fct ?template)) TRUE
+		(bind ?count (+ ?count 1)))
+    ?count
+)
+
+; This assertion is needed to force the implicit definition of the deftemplate 'slot', which is used in the
+; count-slots and assert_unique_slot functions.
+(assert (slot __initial_slot__))
+
+(deffunction count-slots (?name)
+	(bind ?count 0)
+	(do-for-all-facts ((?fct slot)) (eq (nth$ 1 ?fct:implied) ?name)
+		(bind ?count (+ ?count 1)))
+    ?count
+)
 
 (deffunction assert_unique_slot (?name ?value)
 	; 1. Retract all slots with different values
-	(do-for-all-facts ((?f SLOT)) (and (eq ?f:name ?name) (neq ?f:value ?value))
+	(do-for-all-facts ((?f slot)) (and (eq (nth$ 1 ?f:implied) ?name) (neq (rest$ ?f:implied) (create$ ?value)))
 		(retract ?f)
 	)
-	; 2. Check if the same slot is already asserted. If so, do nothing. Else, assert the fact.
+	; 2. Check if the same slot is already asserted. If so, do nothing; else, assert the fact.
 	; This check is intended to avoid unnecessary reasserting of facts.
-	(bind ?rem_facts (find-all-facts ((?f SLOT)) (eq ?f:name ?name)))
+	(bind ?rem_facts (find-all-facts ((?f slot)) (eq (nth$ 1 ?f:implied) ?name)))
 	(if (= (length$ ?rem_facts) 0) then
-			(assert (SLOT (name ?name) (value ?value)))
+			(assert (slot (create$ ?name ?value)))
 	)
 )
 
@@ -34,21 +38,7 @@
     (assert_unique_slot ?name ?value)
 )
 
-(deffunction assert_unique_mslot (?name $?value)
-	; 1. Retract all slots with different values
-	(do-for-all-facts ((?f MSLOT)) (and (eq ?f:name ?name) (neq ?f:value ?value))
-		(retract ?f)
-	)
-	; 2. Check if the same slot is already asserted. If so, do nothing. Else, assert the fact.
-	; This check is intended to avoid unnecessary reasserting of facts.
-	(bind ?rem_facts (find-all-facts ((?f MSLOT)) (eq ?f:name ?name)))
-	(if (= (length$ ?rem_facts) 0) then
-			(assert (MSLOT (name ?name) (value ?value)))
-	)
+; Retract the (slot __initial_slot) fact since it is not longer needed.
+(do-for-all-facts ((?f slot)) (eq (nth$ 1 ?f:implied) __initial_slot__)
+    (retract ?f)
 )
-
-; This is an alias of assert_unique_mslot
-(deffunction aums (?name $?value)
-    (assert_unique_mslot ?name ?value)
-)
-
