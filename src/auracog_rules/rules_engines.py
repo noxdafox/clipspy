@@ -2,7 +2,6 @@ from typing import Any, Dict, List, NewType, Text, Tuple, Union, NoReturn
 from clips import Environment, ImpliedFact, TemplateFact
 from clips.common import Symbol
 from .utils import get_functions_from_module_name
-#from.rules_engines_persistence import RulesEnginesStore
 
 from collections import deque
 from queue import Queue
@@ -17,49 +16,14 @@ SYMBOL_FALSE = Symbol("False")
 
 # Type definitions
 SimpleFactValue = NewType("SimpleFactValue", Union[int, float, bool, Text])
-UnorderedFactValue = NewType("FactValue", Union[Dict[Text, SimpleFactValue], object])
+UnorderedFactValue = NewType("FactValue", Union[Dict[Text, Union[SimpleFactValue, List[SimpleFactValue]]], object])
 OrderedFactValue = NewType("FactValue", Union[SimpleFactValue, List[SimpleFactValue]])
 GenericFactValue = NewType("GenericFactValue", Union[UnorderedFactValue, OrderedFactValue])
 
 
-class InvalidSlotF(Exception):
-    """
-    This exception is raised when an invalid (slot_f) operation is invoked.
-    """
-    pass
-
-class InvalidUniqueSlot(Exception):
-    """
-    This exception is raised when an invalid (unique_slot) operation is invoked.
-    """
-    pass
-
-class InvalidCallF(Exception):
-    """
-    This exception is raised when an invalid (call_f) operation is invoked.
-    """
-    pass
-
-class InvalidUniqueSlotF(Exception):
-    """
-    This exception is raised when an invalid (unique_slot_f) operation is invoked.
-    """
-    pass
-
 class ReasonLimitReached(Exception):
     """
     This exception is raised when the maximum limit of reasoning cycles is reached.
-    """
-    pass
-
-class InvalidCallAndAssert(Exception):
-    """
-    This exception is raised when an invalid (call_and_assert) operation is invoked.
-    """
-
-class FuctionsPackageNotSet(Exception):
-    """
-    This exception is raised when no functions package/module has been configured but a custom function is called.
     """
     pass
 
@@ -73,6 +37,12 @@ class PersistenceError(Exception):
     """
     This exception is raised when an error in writing / reading persistent the state of a rules engine from a persistent
     store occurs.
+    """
+    pass
+
+class ReleaseRulesEngineError(Exception):
+    """
+    This exception is raised when trying to release an already released rules engine.
     """
     pass
 
@@ -107,7 +77,7 @@ class RulesEngine(TicToc):
         (call_f <function_name> [<positional_argument>]*)
     - Write into a slot the resulting value of the invocation of a function, with format
         (set_slot_f <slot_name> <function_name> [<positional_argument>]*)
-      The result of this will be the assertion of the fact (slot <slot_name> <alot_value>) where <slot_value> is the
+      The result of this will be the assertion of the fact (slot <slot_name> <slot_value>) where <slot_value> is the
       value returned by the call <function_name>([<propositional_argument>]*)
     """
 
@@ -203,7 +173,7 @@ class RulesEngine(TicToc):
                     self.assert_slot(k, v)
         elif isinstance(slots, list):
             for s in slots:
-                if not isinstance(s, tuple) or len(s) < 2:
+                if not (isinstance(s, tuple) or isinstance(s, list)) or len(s) < 2:
                     raise InvalidSlotFormat("The slot {} has not a valid format".format(s))
                 _slot_name = s[0]
                 _slot_value = s[1] if len(s) == 2 else s[1:]
@@ -218,7 +188,7 @@ class RulesEngine(TicToc):
         """
         Write the content of a dictionary or a list as facts into the working memory.
         The type of the fact depends on the type of the values provided:
-            - If the type of the value is primitive or list it is asserted as an unordered fact:
+            - If the type of the value is primitive or list it is asserted as an ordered fact:
               ```
               (<fact_name> <value>+)
               ```
@@ -227,7 +197,7 @@ class RulesEngine(TicToc):
               {"content_name": "startrek"} -> (content_name "star trek")
               {"pizza_ingredients": ["cheese" "tomato" "pepperoni"]} -> (pizza_ingredients "cheese" "tomato" "pepperoni")
               ```
-            - If the value is dictionary or a plain python object it is asserted as an ordered fact:
+            - If the value is dictionary or a plain python object it is asserted as an unordered fact:
               ```
               (<fact_name> (<property_name|key> <value>))
               ```
@@ -319,7 +289,7 @@ class RulesEngine(TicToc):
                     self.assert_fact(k, v)
         elif isinstance(facts, list):
             for f in facts:
-                if not isinstance(f, tuple) or len(f) < 2:
+                if not (isinstance(f, tuple) or isinstance(f, list)) or len(f) < 2:
                     raise InvalidSlotFormat("The fact {} has not a valid format".format(f))
                 _fact_name = f[0]
                 _fact_value = f[1] if len(f) == 2 else f[1:]
@@ -351,25 +321,41 @@ class RulesEngine(TicToc):
             fact[k] = v
         fact.assertit()
 
-    def reason(self, reason_limit=1000, mode="BASIC") -> Union[NoReturn, Dict[Text, UnorderedFactValue]]:
+    # def reason(self, reason_limit=1000, mode="BASIC"):
+    #     """
+    #     Executes the run command of Clips.
+    #
+    #     :param reason_limit: Maximum number of processing cycles allowed. This is a safety limit that never should be
+    #     reached.
+    #     :param mode: Mode of reasoning. The following modes are currently available:
+    #         - "COMPLETE" (default): Additional control logic is used to provide extra functionalities to the CLIPS
+    #           rules engine.. This includes:
+    #           - "Slot mode" for facts: data can be asserted as special facts with this structure:
+    #                 (slot <slot_name> <slot_value>)
+    #             This makes easier working with slot-like fact bases.
+    #           - Assertion of "unique slots". It is possible to force uniqueness of slot facts.
+    #         - "BASIC": Use CLIPS as it is, without any extra enhancement.
+    #
+    #     """
+    #     self._tic("reason")
+    #     self.num_fires = 0
+    #     self._reason(reason_limit=reason_limit, mode=mode)
+    #     self._toc("reason")
+    #     logger.debug("Rules engine reason() took {:.3f} ms. Facts asserted: {}. Rules defined: {}. Rules fired: {}".format(self._tictoc("reason")*1000,
+    #                                                                                           self.get_num_facts(),
+    #                                                                                           self.get_num_rules(),
+    #                                                                                           self.num_fires))
+
+    def reason(self, max_fires=1000):
         """
-        Executes the run command of Clips.
+        Executes the run command of CLIPS.
 
-        :param reason_limit: Maximum number of processing cycles allowed. This is a safety limit that never should be
-        reached.
-        :param mode: Mode of reasoning. The following modes are currently available:
-            - "COMPLETE" (default): Additional control logic is used to provide extra functionalities to the CLIPS
-              rules engine.. This includes:
-              - "Slot mode" for facts: data can be asserted as special facts with this structure:
-                    (slot <slot_name> <slot_value>)
-                This makes easier working with slot-like fact bases.
-              - Assertion of "unique slots". It is possible to force uniqueness of slot facts.
-            - "BASIC": Use CLIPS as it is, without any extra enhancement.
-
+        :param max_fires: Maximum number of rules to be fired. Execution will cease after the specified number of rule
+             firings or when the agenda contains no rule activations.
         """
         self._tic("reason")
         self.num_fires = 0
-        self._reason(reason_limit=reason_limit, mode=mode)
+        self._reason(max_fires=max_fires)
         self._toc("reason")
         logger.debug("Rules engine reason() took {:.3f} ms. Facts asserted: {}. Rules defined: {}. Rules fired: {}".format(self._tictoc("reason")*1000,
                                                                                               self.get_num_facts(),
@@ -447,9 +433,12 @@ class RulesEngine(TicToc):
           ]
           ```
 
+        **Note that the values of ordered facts are returned as lists and those of unordered facts as dictionaries**.
+
         :param name: The name of the facts to be collected.
 
-        :return: A list with the values of the found facts.
+        :return: A list with the values of the found facts: lists for ordered facts and dictionaries for unordered
+            facts.
         """
         self._tic("collect_fact_values")
         res = []
@@ -469,7 +458,6 @@ class RulesEngine(TicToc):
         logger.debug("Rules engine collect_fact_values() took {:.3f} ms".format(self._tictoc("collect_fact_values")*1000))
         return res
 
-
     # def update_slots_and_reason(self, invalidated_slots_dict: Dict[Text, Any],
     #                             slots_snapshot_dict: Dict[Text, Any], reason_limit=1000) -> Dict[Text, Any]:
     #     """
@@ -485,7 +473,6 @@ class RulesEngine(TicToc):
     #     self._reason(reason_limit=reason_limit)
     #     # Collect facts
     #     return self._collect_resulting_slots(slots_snapshot_dict)
-
 
     def update_slots_and_reason(self, updated_slots_dict: Dict[Text, OrderedFactValue],
                                 reason_limit=1000) -> Dict[Text, OrderedFactValue]:
@@ -511,7 +498,7 @@ class RulesEngine(TicToc):
     def _translate_clips_value(self, value: Any) -> Any:
         """
         Convert a clips value into its corresponding python type.
-        In particular, translate Symbols to booleans / Strings / Integers / Floats.
+        In particular, translate Symbols to booleans / strings / integers / floats.
 
         :param value: Value to translate.
 
@@ -568,7 +555,7 @@ class RulesEngine(TicToc):
         for f in self.env.facts():
             template = f.template
             if template.name == "slot":
-                fact_items = list(f)
+#                fact_items = list(f)
                 res.append(f)
         return res
 
@@ -592,7 +579,7 @@ class RulesEngine(TicToc):
         The result is the assertion of a fact with this form:
         - If fact_value is a primitive Python type or a list: ordered fact.
         - If fact_value is a dictionary or plain object: unordered fact. In this case the corresponding deftemplate to
-          fact_name should be defined in the rules engine.
+          fact_name should already be defined in the rules engine.
 
         :param fact_name: The name of the fact.
         :param fact_value: Value or list of values for the slot.
@@ -632,9 +619,10 @@ class RulesEngine(TicToc):
 
         Return a list of items as a value to be set into a slot fact.
 
-        :param item_list: List of itmes. If it contains only one elment, this is returned. If it contains more than one
-        element, return this list. item_list is empty, return None.
-        :return:
+        :param item_list: List of items.
+
+        :return: If item_list contains only one element, this is returned. If it contains more than one
+            element, return this list. If item_list is empty, return None.
         """
         if item_list is None:
             return None
@@ -645,65 +633,74 @@ class RulesEngine(TicToc):
         else:
             return item_list
 
-    def _reason(self, reason_limit=1000, mode="BASIC") -> Dict[Text, Any]:
+    # def _reason(self, reason_limit=1000, mode="BASIC") -> Dict[Text, Any]:
+    #     """
+    #     :param reason_limit:
+    #     :param mode: Mode of reasoning. The following modes are currently available:
+    #         - "COMPLETE" (default): Additional control logic is used to provide extra functionalities to the CLIPS
+    #           rules engine.. This includes:
+    #           - "Slot mode" for facts: data can be asserted as special facts with this structure:
+    #                 (slot <slot_name> <slot_value>)
+    #             This makes easier working with slot-like fact bases.
+    #           - Assertion of "unique slots". It is possible to force uniqueness of slot facts.
+    #         - "BASIC": Use CLIPS as it is, without any extra enhancement.
+    #     """
+    #     assert mode in ["BASIC", "COMPLETE"]
+    #     if reason_limit <= 0:
+    #         raise ReasonLimitReached()
+    #     self._tic("_reason.self.env.run")
+    #     self.num_fires += self.env.run()
+    #     self._toc("_reason.self.env.run")
+    #     logger.debug("Rules engine _reason().self.env.run() took {:.3f} ms".format(self._tictoc("_reason.self.env.run")*1000))
+    #     run_again = False
+    #
+    #     if mode == "COMPLETE":
+    #         # Look for 'unique_slot', 'unique_slot_f', 'call_and_assert'
+    #         _slots_to_assert = []
+    #         _facts_to_retract = []
+    #         self._tic("_reason.loop_on_facts")
+    #         for f in self.env.facts():
+    #             template = f.template
+    #             #-----------
+    #             # unique_slot
+    #             if template.name == "unique_slot":
+    #                 fact_items = list(f)
+    #                 run_again = True
+    #                 if len(fact_items) == 0:
+    #                     raise InvalidUniqueSlot("No slot name is provided in (unique_slot)")
+    #                 if len(fact_items) == 1:
+    #                     raise InvalidUniqueSlot("No slot value is provided in (unique_slot)")
+    #                 _facts_to_retract.append(f)
+    #                 _slot_name = fact_items[0]
+    #                 _slot_value = self._get_slot_values_from_list(fact_items[1:])
+    #                 # Get the facts to retract and decide whether asserting a new fact is necessary.
+    #                 _new_facts_to_retract, _needs_to_assert = self._get_facts_to_retract_unique(_slot_name, _slot_value)
+    #                 for r_f in _new_facts_to_retract:
+    #                     _facts_to_retract.append(r_f)
+    #                 if _needs_to_assert:
+    #                     # Assert the new fact
+    #                     _slots_to_assert.append((_slot_name, _slot_value))
+    #         self._toc("_reason.loop_on_facts")
+    #         logger.debug("Rules engine _reason().loop_on_facts took {:.3f} ms".format(self._tictoc("_reason.loop_on_facts")*1000))
+    #
+    #         for f in _facts_to_retract:
+    #             f.retract()
+    #         for _s in _slots_to_assert:
+    #             # Assert the new fact
+    #             self.assert_fact(_s[0], _s[1])
+    #
+    #         if run_again:
+    #             self._reason(reason_limit - 1)
+
+
+    def _reason(self, max_fires=10000) -> Dict[Text, Any]:
         """
-        :param slots:
-        :param reason_limit:
-        :param mode: Mode of reasoning. The following modes are currently available:
-            - "COMPLETE" (default): Additional control logic is used to provide extra functionalities to the CLIPS
-              rules engine.. This includes:
-              - "Slot mode" for facts: data can be asserted as special facts with this structure:
-                    (slot <slot_name> <slot_value>)
-                This makes easier working with slot-like fact bases.
-              - Assertion of "unique slots". It is possible to force uniqueness of slot facts.
-            - "BASIC": Use CLIPS as it is, without any extra enhancement.
+        :param max_fires: Maximum number of rule fires.
         """
-        assert mode in ["BASIC", "COMPLETE"]
-        if reason_limit <= 0:
-            raise ReasonLimitReached()
         self._tic("_reason.self.env.run")
-        self.num_fires += self.env.run()
+        self.num_fires += self.env.run(max_fires)
         self._toc("_reason.self.env.run")
         logger.debug("Rules engine _reason().self.env.run() took {:.3f} ms".format(self._tictoc("_reason.self.env.run")*1000))
-        run_again = False
-
-        if mode == "COMPLETE":
-            # Look for 'unique_slot', 'unique_slot_f', 'call_and_assert'
-            _slots_to_assert = []
-            _facts_to_retract = []
-            self._tic("_reason.loop_on_facts")
-            for f in self.env.facts():
-                template = f.template
-                #-----------
-                # unique_slot
-                if template.name == "unique_slot":
-                    fact_items = list(f)
-                    run_again = True
-                    if len(fact_items) == 0:
-                        raise InvalidUniqueSlot("No slot name is provided in (unique_slot)")
-                    if len(fact_items) == 1:
-                        raise InvalidUniqueSlot("No slot value is provided in (unique_slot)")
-                    _facts_to_retract.append(f)
-                    _slot_name = fact_items[0]
-                    _slot_value = self._get_slot_values_from_list(fact_items[1:])
-                    # Get the facts to retract and decide whether asserting a new fact is necessary.
-                    _new_facts_to_retract, _needs_to_assert = self._get_facts_to_retract_unique(_slot_name, _slot_value)
-                    for r_f in _new_facts_to_retract:
-                        _facts_to_retract.append(r_f)
-                    if _needs_to_assert:
-                        # Assert the new fact
-                        _slots_to_assert.append((_slot_name, _slot_value))
-            self._toc("_reason.loop_on_facts")
-            logger.debug("Rules engine _reason().loop_on_facts took {:.3f} ms".format(self._tictoc("_reason.loop_on_facts")*1000))
-
-            for f in _facts_to_retract:
-                f.retract()
-            for _s in _slots_to_assert:
-                # Assert the new fact
-                self.assert_fact(_s[0], _s[1])
-
-            if run_again:
-                self._reason(reason_limit - 1)
 
     def _get_facts_to_retract_unique(self, slot_name: Text, slot_value: Any) -> Tuple[List[ImpliedFact], bool]:
         """
@@ -734,22 +731,6 @@ class RulesEngine(TicToc):
                 # This is a repeated fact that must be retracted.
                 facts_to_retract.append(r_f)
         return facts_to_retract, needs_to_assert
-
-    # def _call_function(self, function_name: Text, *argv):
-    #     """
-    #     Calls a function given its name, module and arguments.
-    #     Currently only positional arguments are supported.
-    #
-    #     :param function_name:
-    #     :param argv:
-    #     """
-    #     if self.functions_package is not None:
-    #         function_to_call = getattr(self.functions_package, function_name)
-    #     elif self.functions_module is not None:
-    #         function_to_call = getattr(self.functions_module, function_name)
-    #     else:
-    #         raise FuctionsPackageNotSet("NO functions package/module has been cpnfigured.")
-    #     return function_to_call(*argv)
 
     def reset(self):
         """
@@ -791,7 +772,7 @@ class RulesEnginePool(object):
         If the maximum number of engines is reached and there is no idle engine this method blocks until one engine is
         released.
 
-        :param pool_name:
+        :param pool_name: The name of the pool.
         :param rules_files: List of files containing the Clips definition of the rules. Files are provided following
             their intended loading order. For instance, if file_2 uses constructs defined in file_1 then the following
             list must be provided [file_1, file_2].
@@ -811,11 +792,13 @@ class RulesEnginePool(object):
             cls.pool_dict[pool_name] = pool
             return pool
 
-    def __init__(self, pool_name: Text, rules_file: Text, functions_package_name: Text= None,
+    def __init__(self, pool_name: Text, rules_files: List[Text], functions_package_name: Text= None,
                  pool_size: int= -1, initial_pool_size: int= 5, store: 'RulesEnginesStore'= None):
         """
         :param pool_name: The name of the pool.
-        :param rules_file: File with the definition of the rules to be loaded into the engine.
+        :param rules_files: List of files containing the Clips definition of the rules. Files are provided following
+            their intended loading order. For instance, if file_2 uses constructs defined in file_1 then the following
+            list must be provided [file_1, file_2].
         :param functions_package_name: The name of the package containing the functions that will be used in the rules.
           If this parameter is set 'functions_module_name' and 'functions_module_file' will not be used.
         :param pool_size: Number of rules engines in the pool. If -1, the number of engines is not limited.
@@ -823,7 +806,7 @@ class RulesEnginePool(object):
         :param store: A RulesEnginesStore to save persistent states.
         """
         self.pool_name = pool_name
-        self.rules_file = rules_file
+        self.rules_files = rules_files
         self.functions_package_name = functions_package_name
         self.pool_size = pool_size
         self.initial_pool_size = initial_pool_size
@@ -836,9 +819,10 @@ class RulesEnginePool(object):
     def _create_and_load_rules_engine(self) -> RulesEngine:
         """
         Creates a new rules engine and loads rules on it.
+
         :return: The new rules engine.
         """
-        return RulesEngine(self.rules_file, self.functions_package_name)
+        return RulesEngine(self.rules_files, self.functions_package_name)
 
     def _preload_rules_engines(self):
         """
@@ -851,6 +835,7 @@ class RulesEnginePool(object):
         """
         Acquires a rules engine from the pool. If there is not any available engine then the current process is blocked
         until one is ready.
+
         :return: An idle rules engine.
         """
         if self.idle_engines.qsize() == 0 and (self.pool_size == -1 or len(self.busy_engines) < self.pool_size):
@@ -865,7 +850,7 @@ class RulesEnginePool(object):
         """
         Acquires a rules engine from the pool. If there is not any available engine then the current process is blocked
         until one is ready.
-        If a not None `id` is provided the previously stored persistent state coresponding to this id is tried to be
+        If a not None `id` is provided the previously stored persistent state corresponding to this id is tried to be
         loaded into the engine. If no information is found for the id then the rules engine in returned empty.
         The management of the persistence id is made externally to the rules engine pool.
 
@@ -882,12 +867,16 @@ class RulesEnginePool(object):
         """
         Releases a rules engine and marks it as idle. Just after releasing a reset operation is executed on the engine
         to reinitialize it.
+
         :param rules_engine: The rules engine to release.
         :param id: If not None, persist the current state of the rules engine into this id. Default: None.
         """
         if id is not None:
             self.persist_engine(rules_engine, id)
-        self.busy_engines.remove(rules_engine)
+        try:
+            self.busy_engines.remove(rules_engine)
+        except ValueError:
+            raise ReleaseRulesEngineError("Cannot release this rules engine. Not acquired!")
         rules_engine.reset()
         self.idle_engines.put(rules_engine)
 
@@ -895,8 +884,8 @@ class RulesEnginePool(object):
         """
         Save the current state of a rules engine into a persistent storage.
 
-        :param rules_engine:
-        :param id:
+        :param rules_engine: The rules engine whose state is to be persisted.
+        :param id: The identifier for the persistent state.
         """
         if self.store is None:
             raise PersistenceError("No RulesEngineStore has been configured!")
@@ -908,8 +897,8 @@ class RulesEnginePool(object):
         """
         Load a persisted state into a rules engine.
 
-        :param rules_engine:
-        :param id: The id of the persisted state.
+        :param rules_engine: The rules to load the persisted state on.
+        :param id: The identifier of the persisted state.
         """
         if self.store is None:
             raise PersistenceError("No RulesEngineStore has been configured!")
