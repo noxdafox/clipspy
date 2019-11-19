@@ -42,7 +42,7 @@
 
 ; Retract the (slot __initial_slot) fact since it is not longer needed.
 (defrule retract_initial_slot "This rule retracts the __initial_slot__ rule, needed for managing unique slots"
-    ?f <- (slot __initial__slot__)
+    ?f <- (slot __initial_slot__)
     =>
     (retract ?f)
 )
