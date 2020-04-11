@@ -1,6 +1,8 @@
 __pycache__/
 *.py[cod]
 clips/*.c
+clips.zip
+clips_source/
 *.so
 *.o
 GPATH
