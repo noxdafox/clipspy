@@ -2,7 +2,8 @@ PYTHON			?= python
 CLIPS_VERSION		?= 6.31
 CLIPS_SOURCE_URL	?= "https://downloads.sourceforge.net/project/clipsrules/CLIPS/6.31/clips_core_source_631.zip"
 MAKEFILE_NAME		?= makefile
-SHARED_LIBRARY_DIR	?= /usr/lib
+SHARED_INCLUDE_DIR	?= /usr/local/include
+SHARED_LIBRARY_DIR	?= /usr/local/lib
 
 # platform detection
 PLATFORM = $(shell uname -s)
@@ -39,7 +40,12 @@ test: clipspy
 		$(PYTHON) -m pytest -v
 
 install-clips: clips
-	cp clips_source/libclips.so		 			       \
+	install -d $(SHARED_INCLUDE_DIR)/
+	install -m 644 clips_source/clips.h $(SHARED_INCLUDE_DIR)/
+	install -d $(SHARED_INCLUDE_DIR)/clips
+	install -m 644 clips_source/*.h $(SHARED_INCLUDE_DIR)/clips/
+	install -d $(SHARED_LIBRARY_DIR)/
+	install -m 644 clips_source/libclips.so                                \
 	 	$(SHARED_LIBRARY_DIR)/libclips.so.$(CLIPS_VERSION)
 	ln -s $(SHARED_LIBRARY_DIR)/libclips.so.$(CLIPS_VERSION)	       \
 	 	$(SHARED_LIBRARY_DIR)/libclips.so.6
