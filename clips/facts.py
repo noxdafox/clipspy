@@ -158,7 +158,7 @@ class Fact(object):
     def __str__(self):
         string = fact_pp_string(self._env, self._fact)
 
-        return string.split('     ', 1)[-1]
+        return string.split(None, 1)[-1]
 
     def __repr__(self):
         return "%s: %s" % (
