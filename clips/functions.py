@@ -29,72 +29,25 @@
 
 """This module contains the definition of:
 
-  * Functions namespace class
   * Function class
   * Generic class
   * Method class
+  * Functions namespace class
 
 """
+
+import traceback
 
 import clips
 
 from clips.modules import Module
-from clips.error import CLIPSError
+from clips.common import CLIPSError, environment_builder, environment_data
 
 from clips._clips import lib, ffi
 
 
-class Functions(object):
-    """Functions, Generics and Methods namespace class.
-
-    .. note::
-
-       All the Functions methods are accessible through the Environment class.
-
-    """
-
-    __slots__ = '_env'
-
-    def __init__(self, env):
-        self._env = env
-
-    def functions(self):
-        """Iterates over the defined Globals."""
-        deffunction = lib.EnvGetNextDeffunction(self._env, ffi.NULL)
-
-        while deffunction != ffi.NULL:
-            yield Function(self._env, deffunction)
-
-            deffunction = lib.EnvGetNextDeffunction(self._env, deffunction)
-
-    def find_function(self, name):
-        """Find the Function by its name."""
-        deffunction = lib.EnvFindDeffunction(self._env, name.encode())
-        if deffunction == ffi.NULL:
-            raise LookupError("Function '%s' not found" % name)
-
-        return Function(self._env, deffunction)
-
-    def generics(self):
-        """Iterates over the defined Generics."""
-        defgeneric = lib.EnvGetNextDefgeneric(self._env, ffi.NULL)
-
-        while defgeneric != ffi.NULL:
-            yield Generic(self._env, defgeneric)
-
-            defgeneric = lib.EnvGetNextDefgeneric(self._env, defgeneric)
-
-    def find_generic(self, name):
-        """Find the Generic by its name."""
-        defgeneric = lib.EnvFindDefgeneric(self._env, name.encode())
-        if defgeneric == ffi.NULL:
-            raise LookupError("Generic '%s' not found" % name)
-
-        return Generic(self._env, defgeneric)
-
-
-class Function(object):
-    """A CLIPS user defined function.
+class Function:
+    """A CLIPS user defined Function.
 
     In CLIPS, Functions are defined via the (deffunction) statement.
 
@@ -102,7 +55,7 @@ class Function(object):
 
     __slots__ = '_env', '_fnc'
 
-    def __init__(self, env, fnc):
+    def __init__(self, env: ffi.CData, fnc: ffi.CData):
         self._env = env
         self._fnc = fnc
 
@@ -113,88 +66,88 @@ class Function(object):
         return self._fnc == fnc._fnc
 
     def __str__(self):
-        string = ffi.string(lib.EnvGetDeffunctionPPForm(self._env, self._fnc))
+        string = lib.DeffunctionPPForm(self._fnc)
+        string = ffi.string(string).decode() if string != ffi.NULL else ''
 
-        return string.decode().rstrip('\n')
+        return ' '.join(string.split())
 
     def __repr__(self):
-        string = ffi.string(lib.EnvGetDeffunctionPPForm(self._env, self._fnc))
+        string = lib.DeffunctionPPForm(self._fnc)
+        string = ffi.string(string).decode() if string != ffi.NULL else ''
 
-        return "%s: %s" % (self.__class__.__name__,
-                           string.decode().rstrip('\n'))
+        return "%s: %s" % (self.__class__.__name__, ' '.join(string.split()))
 
-    def __call__(self, arguments=''):
-        """Call the CLIPS function.
+    def __call__(self, *arguments):
+        """Call the CLIPS function with the given arguments."""
+        value = clips.values.clips_value(self._env)
+        builder = environment_builder(self._env, 'function')
 
-        Function arguments must be provided as a string.
+        lib.FCBReset(builder)
+        for argument in arguments:
+            lib.FCBAppend(
+                builder, clips.values.clips_value(self._env, value=argument))
 
-        """
-        data = clips.data.DataObject(self._env)
-        name = ffi.string(lib.EnvGetDeffunctionName(self._env, self._fnc))
-        args = arguments.encode() if arguments != '' else ffi.NULL
+        ret = lib.FCBCall(builder, lib.DeffunctionName(self._fnc), value)
+        if ret != lib.FCBE_NO_ERROR:
+            raise CLIPSError(self._env, code=ret)
 
-        if lib.EnvFunctionCall(self._env, name, args, data.byref) == 1:
-            raise CLIPSError(self._env)
-
-        return data.value
+        return clips.values.python_value(self._env, value)
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Function name."""
-        return ffi.string(
-            lib.EnvGetDeffunctionName(self._env, self._fnc)).decode()
+        return ffi.string(lib.DeffunctionName(self._fnc)).decode()
 
     @property
-    def module(self):
+    def module(self) -> Module:
         """The module in which the Function is defined.
 
-        Python equivalent of the CLIPS deffunction-module command.
+        Equivalent to the CLIPS (deffunction-module) functions.
 
         """
-        modname = ffi.string(lib.EnvDeffunctionModule(self._env, self._fnc))
-        defmodule = lib.EnvFindDefmodule(self._env, modname)
+        modname = ffi.string(lib.DeffunctionModule(self._fnc))
 
-        return Module(self._env, defmodule)
+        return Module(self._env, lib.FindDefmodule(self._env, modname))
 
     @property
-    def deletable(self):
+    def deletable(self) -> bool:
         """True if the Function can be deleted."""
-        return bool(lib.EnvIsDeffunctionDeletable(self._env, self._fnc))
+        return lib.DeffunctionIsDeletable(self._fnc)
 
     @property
-    def watch(self):
+    def watch(self) -> bool:
         """Whether or not the Function is being watched."""
-        return bool(lib.EnvGetDeffunctionWatch(self._env, self._fnc))
+        return lib.DeffunctionGetWatch(self._fnc)
 
     @watch.setter
-    def watch(self, flag):
+    def watch(self, flag: bool):
         """Whether or not the Function is being watched."""
-        lib.EnvSetDeffunctionWatch(self._env, int(flag), self._fnc)
+        lib.DeffunctionSetWatch(self._fnc, flag)
 
     def undefine(self):
         """Undefine the Function.
 
-        Python equivalent of the CLIPS undeffunction command.
+        Equivalent to the CLIPS (undeffunction) command.
 
         The object becomes unusable after this method has been called.
 
         """
-        if lib.EnvUndeffunction(self._env, self._fnc) != 1:
+        if not lib.Undeffunction(self._fnc, self._env):
             raise CLIPSError(self._env)
 
-        self._env = None
+        self._env = self._fnc = None
 
 
-class Generic(object):
-    """A CLIPS generic function.
+class Generic:
+    """A CLIPS Generic Function.
 
-    In CLIPS, Functions are defined via the (defgeneric) statement.
+    In CLIPS, Generic Functions are defined via the (defgeneric) statement.
 
     """
 
     __slots__ = '_env', '_gnc'
 
-    def __init__(self, env, gnc):
+    def __init__(self, env: ffi.CData, gnc: ffi.CData):
         self._env = env
         self._gnc = gnc
 
@@ -205,75 +158,85 @@ class Generic(object):
         return self._gnc == gnc._gnc
 
     def __str__(self):
-        string = ffi.string(lib.EnvGetDefgenericPPForm(self._env, self._gnc))
+        string = lib.DefgenericPPForm(self._gnc)
+        string = ffi.string(string).decode() if string != ffi.NULL else ''
 
-        return string.decode().rstrip('\n')
+        return ' '.join(string.split())
 
     def __repr__(self):
-        string = ffi.string(lib.EnvGetDefgenericPPForm(self._env, self._gnc))
+        string = lib.DefgenericPPForm(self._gnc)
+        string = ffi.string(string).decode() if string != ffi.NULL else ''
 
-        return "%s: %s" % (self.__class__.__name__,
-                           string.decode().rstrip('\n'))
+        return "%s: %s" % (self.__class__.__name__, ' '.join(string.split()))
 
-    def __call__(self, arguments=''):
-        """Call the CLIPS generic function.
+    def __call__(self, *arguments):
+        """Call the CLIPS Generic function with the given arguments."""
+        value = clips.values.clips_value(self._env)
+        builder = environment_builder(self._env, 'function')
 
-        Function arguments must be provided as a string.
+        lib.FCBReset(builder)
+        for argument in arguments:
+            lib.FCBAppend(
+                builder, clips.values.clips_value(self._env, value=argument))
+
+        ret = lib.FCBCall(builder, lib.DefgenericName(self._gnc), value)
+        if ret != lib.FCBE_NO_ERROR:
+            raise CLIPSError(self._env, code=ret)
+
+        return clips.values.python_value(self._env, value)
+
+    @property
+    def name(self) -> str:
+        """Generic name."""
+        return ffi.string(lib.DefgenericName(self._gnc)).decode()
+
+    @property
+    def module(self) -> Module:
+        """The module in which the Generic is defined.
+
+        Equivalent to the CLIPS (defgeneric-module) generics.
 
         """
-        data = clips.data.DataObject(self._env)
-        name = ffi.string(lib.EnvGetDefgenericName(self._env, self._gnc))
-        args = arguments.encode() if arguments != '' else ffi.NULL
+        modname = ffi.string(lib.DefgenericModule(self._gnc))
 
-        if lib.EnvFunctionCall(self._env, name, args, data.byref) == 1:
-            raise CLIPSError(self._env)
-
-        return data.value
+        return Module(self._env, lib.FindDefmodule(self._env, modname))
 
     @property
-    def name(self):
-        return ffi.string(
-            lib.EnvGetDefgenericName(self._env, self._gnc)).decode()
+    def deletable(self) -> bool:
+        """True if the Generic can be deleted."""
+        return lib.DefgenericIsDeletable(self._gnc)
 
     @property
-    def module(self):
-        modname = ffi.string(lib.EnvDefgenericModule(self._env, self._gnc))
-        defmodule = lib.EnvFindDefmodule(self._env, modname)
-
-        return Module(self._env, defmodule)
-
-    @property
-    def deletable(self):
-        return bool(lib.EnvIsDefgenericDeletable(self._env, self._gnc))
-
-    @property
-    def watch(self):
-        return bool(lib.EnvGetDefgenericWatch(self._env, self._gnc))
+    def watch(self) -> bool:
+        """Whether or not the Generic is being watched."""
+        return lib.DefgenericGetWatch(self._gnc)
 
     @watch.setter
-    def watch(self, flag):
-        lib.EnvSetDefgenericWatch(self._env, int(flag), self._gnc)
+    def watch(self, flag: bool):
+        """Whether or not the Generic is being watched."""
+        lib.DefgenericSetWatch(self._gnc, flag)
 
-    def methods(self):
-        index = lib.EnvGetNextDefmethod(self._env, self._gnc, 0)
+    def methods(self) -> iter:
+        """Iterates over the defined Methods."""
+        index = lib.GetNextDefmethod(self._gnc, 0)
 
         while index != 0:
             yield Method(self._env, self._gnc, index)
 
-            index = lib.EnvGetNextDefmethod(self._env, self._gnc, index)
+            index = lib.GetNextDefmethod(self._gnc, index)
 
     def undefine(self):
         """Undefine the Generic.
 
-        Python equivalent of the CLIPS undefgeneric command.
+        Equivalent to the CLIPS (undefgeneric) command.
 
         The object becomes unusable after this method has been called.
 
         """
-        if lib.EnvUndefgeneric(self._env, self._gnc) != 1:
+        if not lib.Undefgeneric(self._gnc, self._env):
             raise CLIPSError(self._env)
 
-        self._env = None
+        self._env = self._gnc = None
 
 
 class Method(object):
@@ -284,7 +247,7 @@ class Method(object):
 
     __slots__ = '_env', '_gnc', '_idx'
 
-    def __init__(self, env, gnc, idx):
+    def __init__(self, env: ffi.CData, gnc: ffi.CData, idx: int):
         self._env = env
         self._gnc = gnc
         self._idx = idx
@@ -296,57 +259,174 @@ class Method(object):
         return self._gnc == gnc._gnc and self._idx == gnc._idx
 
     def __str__(self):
-        string = ffi.string(lib.EnvGetDefmethodPPForm(
-            self._env, self._gnc, self._idx))
+        string = lib.DefmethodPPForm(self._gnc, self._idx)
+        string = ffi.string(string).decode() if string != ffi.NULL else ''
 
-        return string.decode().rstrip('\n')
+        return ' '.join(string.split())
 
     def __repr__(self):
-        string = ffi.string(lib.EnvGetDefmethodPPForm(
-            self._env, self._gnc, self._idx))
+        string = lib.DefmethodPPForm(self._gnc, self._idx)
+        string = ffi.string(string).decode() if string != ffi.NULL else ''
 
-        return "%s: %s" % (self.__class__.__name__,
-                           string.decode().rstrip('\n'))
+        return "%s: %s" % (self.__class__.__name__, ' '.join(string.split()))
 
     @property
-    def watch(self):
-        return bool(lib.EnvGetDefmethodWatch(self._env, self._gnc, self._idx))
+    def watch(self) -> bool:
+        """Whether or not the Method is being watched."""
+        return lib.DefmethodGetWatch(self._gnc, self._idx)
 
     @watch.setter
-    def watch(self, flag):
-        lib.EnvSetDefmethodWatch(self._env, int(flag), self._gnc, self._idx)
+    def watch(self, flag: bool):
+        """Whether or not the Method is being watched."""
+        lib.DefmethodSetWatch(self._gnc, self._idx, flag)
 
     @property
     def deletable(self):
-        return bool(lib.EnvIsDefmethodDeletable(
-            self._env, self._gnc, self._idx))
+        """True if the Template can be undefined."""
+        return lib.DefmethodIsDeletable(self._gnc, self._idx)
 
     @property
-    def restrictions(self):
-        data = clips.data.DataObject(self._env)
+    def restrictions(self) -> tuple:
+        value = clips.values.clips_value(self._env)
 
-        lib.EnvGetMethodRestrictions(
-            self._env, self._gnc, self._idx, data.byref)
+        lib.GetMethodRestrictions(self._gnc, self._idx, value)
 
-        return data.value
+        return clips.values.python_value(self._env, value)
 
     @property
-    def description(self):
-        buf = ffi.new('char[1024]')
-        lib.EnvGetDefmethodDescription(
-            self._env, buf, 1024, self._gnc, self._idx)
+    def description(self) -> str:
+        builder = environment_builder(self._env, 'string')
+        lib.SBReset(builder)
+        lib.DefmethodDescription(self._gnc, self._idx, builder)
 
-        return ffi.string(buf).decode()
+        return ffi.string(builder.contents).decode()
 
     def undefine(self):
         """Undefine the Method.
 
-        Python equivalent of the CLIPS undefmethod command.
+        Equivalent to the CLIPS (undefmethod) command.
 
         The object becomes unusable after this method has been called.
 
         """
-        if lib.EnvUndefmethod(self._env, self._gnc, self._idx) != 1:
+        if not lib.Undefmethod(self._gnc, self._idx, self._env):
             raise CLIPSError(self._env)
 
-        self._env = None
+        self._env = self._gnc = self._idx = None
+
+
+class Functions:
+    """Functions, Generics and Methods namespace class.
+
+    .. note::
+
+       All the Functions methods are accessible through the Environment class.
+
+    """
+
+    __slots__ = '_env'
+
+    def __init__(self, env: ffi.CData):
+        self._env = env
+
+    def call(self, function: str, *arguments) -> type:
+        """Call the CLIPS function with the given arguments."""
+        value = clips.values.clips_value(self._env)
+        builder = environment_builder(self._env, 'function')
+
+        lib.FCBReset(builder)
+        for argument in arguments:
+            lib.FCBAppend(
+                builder, clips.values.clips_value(self._env, value=argument))
+
+        ret = lib.FCBCall(builder, function.encode(), value)
+        if ret != lib.FCBE_NO_ERROR:
+            raise CLIPSError(self._env, code=ret)
+
+        return clips.values.python_value(self._env, value)
+
+    def functions(self):
+        """Iterates over the defined Globals."""
+        deffunction = lib.GetNextDeffunction(self._env, ffi.NULL)
+
+        while deffunction != ffi.NULL:
+            yield Function(self._env, deffunction)
+
+            deffunction = lib.GetNextDeffunction(self._env, deffunction)
+
+    def find_function(self, name: str) -> Function:
+        """Find the Function by its name."""
+        deffunction = lib.FindDeffunction(self._env, name.encode())
+        if deffunction == ffi.NULL:
+            raise LookupError("Function '%s' not found" % name)
+
+        return Function(self._env, deffunction)
+
+    def generics(self) -> iter:
+        """Iterates over the defined Generics."""
+        defgeneric = lib.GetNextDefgeneric(self._env, ffi.NULL)
+
+        while defgeneric != ffi.NULL:
+            yield Generic(self._env, defgeneric)
+
+            defgeneric = lib.GetNextDefgeneric(self._env, defgeneric)
+
+    def find_generic(self, name: str) -> Generic:
+        """Find the Generic by its name."""
+        defgeneric = lib.FindDefgeneric(self._env, name.encode())
+        if defgeneric == ffi.NULL:
+            raise LookupError("Generic '%s' not found" % name)
+
+        return Generic(self._env, defgeneric)
+
+    def define_function(self, function: callable, name: str = None):
+        """Define the Python function within the CLIPS environment.
+
+        If a name is given, it will be the function name within CLIPS.
+        Otherwise, the name of the Python function will be used.
+
+        The Python function will be accessible within CLIPS via its name
+        as if it was defined via the `deffunction` construct.
+
+        """
+        name = name if name is not None else function.__name__
+
+        environment_data(self._env, 'user_functions')[name] = function
+
+        ret = lib.Build(self._env, DEFFUNCTION.format(name).encode())
+        if ret != lib.BE_NO_ERROR:
+            raise CLIPSError(self._env, code=ret)
+
+
+@ffi.def_extern()
+def python_function(env: ffi.CData, context: ffi.CData, output: ffi.CData):
+    arguments = []
+    value = clips.values.clips_udf_value(env)
+
+    if lib.UDFFirstArgument(context, lib.SYMBOL_BIT, value):
+        funcname = clips.values.python_value(env, value)
+    else:
+        lib.UDFThrowError(context)
+        return
+
+    while lib.UDFHasNextArgument(context):
+        if lib.UDFNextArgument(context, clips.values.ANY_TYPE_BITS, value):
+            arguments.append(clips.values.python_value(env, value))
+        else:
+            lib.UDFThrowError(context)
+            return
+
+    try:
+        ret = environment_data(env, 'user_functions')[funcname](*arguments)
+    except Exception as error:
+        clips.values.clips_udf_value(env, traceback.format_exc(), value)
+        lib.SetErrorValue(env, value.header)
+        lib.UDFThrowError(context)
+    else:
+        clips.values.clips_udf_value(env, ret, output)
+
+
+DEFFUNCTION = """
+(deffunction {0} ($?args)
+  (python-function {0} (expand$ ?args)))
+"""

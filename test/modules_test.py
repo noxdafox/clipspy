@@ -73,5 +73,5 @@ class TestModules(unittest.TestCase):
         module = self.env.current_module
 
         self.assertEqual(module.name, 'MAIN')
-        self.assertEqual(str(module), 'MAIN')
-        self.assertEqual(repr(module), 'Module: MAIN')
+        self.assertEqual(str(module), '')
+        self.assertEqual(repr(module), 'Module: ')

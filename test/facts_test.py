@@ -14,10 +14,10 @@ DEFTEMPLATE = """(deftemplate MAIN::template-fact
 """
 
 IMPL_STR = '(implied-fact 1 2.3 "4" five)'
-IMPL_RPR = 'ImpliedFact: f-2     (implied-fact 1 2.3 "4" five)'
+IMPL_RPR = 'ImpliedFact: (implied-fact 1 2.3 "4" five)'
 TMPL_STR = '(template-fact (int 1) (float 2.2) (str "4") (symbol five) ' + \
            '(multifield 1 2))'
-TMPL_RPR = 'TemplateFact: f-1     (template-fact (int 1) (float 2.2) ' + \
+TMPL_RPR = 'TemplateFact: (template-fact (int 1) (float 2.2) ' + \
            '(str "4") (symbol five) (multifield 1 2))'
 
 
@@ -59,26 +59,16 @@ class TestFacts(unittest.TestCase):
 
     def test_implied_fact(self):
         """ImpliedFacts are asserted."""
-        self.env.assert_string('(implied-fact)')
-
         expected = (1, 2.3, '4', Symbol('five'))
-        template = self.env.find_template('implied-fact')
-        fact = template.new_fact()
+        fact = self.env.assert_string('(implied-fact 1 2.3 "4" five)')
 
-        fact.append(1)
-        fact.extend((2.3, '4', Symbol('five')))
-        fact.assertit()
-
-        for asserted_fact in self.env.facts():
-            if asserted_fact == fact:
-                break
-
-        self.assertEqual(asserted_fact[0], 1)
-        self.assertEqual(len(asserted_fact), 4)
-        self.assertEqual(asserted_fact.index, 2)
-        self.assertEqual(tuple(asserted_fact), expected)
-        self.assertEqual(str(asserted_fact), IMPL_STR)
-        self.assertEqual(repr(asserted_fact), IMPL_RPR)
+        self.assertEqual(fact[0], 1)
+        self.assertEqual(len(fact), 4)
+        self.assertEqual(fact.index, 1)
+        self.assertEqual(tuple(fact), expected)
+        self.assertEqual(str(fact), IMPL_STR)
+        self.assertEqual(repr(fact), IMPL_RPR)
+        self.assertTrue(fact in tuple(self.env.facts()))
 
     def test_template_fact(self):
         """TemplateFacts are asserted."""
@@ -86,76 +76,67 @@ class TestFacts(unittest.TestCase):
                     'float': 2.2,
                     'str': '4',
                     'symbol': Symbol('five'),
-                    'multifield': [1, 2]}
+                    'multifield': (1, 2)}
         template = self.env.find_template('template-fact')
-        fact = template.new_fact()
+        fact = template.assert_fact(**expected)
 
-        fact['int'] = 1
-        fact.update({'float': 2.2, 'str': '4'})
-        fact.update((('symbol', Symbol('five')), ('multifield', [1, 2])))
-        fact.assertit()
-
+        self.assertEqual(len(fact), 5)
         self.assertEqual(fact.index, 1)
-        for asserted_fact in self.env.facts():
-            if asserted_fact == fact:
-                break
+        self.assertEqual(fact['int'], 1)
+        self.assertEqual(dict(fact), expected)
+        self.assertEqual(str(fact), TMPL_STR)
+        self.assertEqual(repr(fact), TMPL_RPR)
+        self.assertTrue(fact in tuple(self.env.facts()))
 
-        self.assertEqual(len(asserted_fact), 5)
-        self.assertEqual(asserted_fact.index, 1)
-        self.assertEqual(asserted_fact['int'], 1)
-        self.assertEqual(dict(asserted_fact), expected)
-        self.assertEqual(str(asserted_fact), TMPL_STR)
-        self.assertEqual(repr(asserted_fact), TMPL_RPR)
+    def test_template_fact_errors(self):
+        """TemplateFacts errors."""
+        with self.assertRaises(LookupError):
+            self.env.find_template('non-existing-template')
 
-    def test_implied_fact_already_asserted(self):
-        """Asserted ImpliedFacts cannot be modified or re-asserted."""
-        self.env.assert_string('(implied-fact)')
-
-        template = self.env.find_template('implied-fact')
-        fact = template.new_fact()
-
-        fact.extend((1, 2.3, '4', Symbol('five')))
-        fact.assertit()
-
-        self.assertTrue(fact.asserted)
-
-        with self.assertRaises(RuntimeError):
-            fact.append(42)
-        with self.assertRaises(RuntimeError):
-            fact.assertit()
-
-    def test_template_fact_already_asserted(self):
-        """Asserted TemplateFacts cannot be modified or re-asserted."""
         template = self.env.find_template('template-fact')
-        fact = template.new_fact()
 
-        fact.update({'int': 1, 'float': 2.2, 'str': '4',
-                     'symbol': Symbol('five'), 'multifield': [1, 2]})
-        fact.assertit()
+        with self.assertRaises(KeyError):
+            template.assert_fact(non_existing_slot=1)
+        with self.assertRaises(TypeError):
+            template.assert_fact(int=1.0)
+        with self.assertRaises(ValueError):
+            template.assert_fact(int=10)
 
-        self.assertTrue(fact.asserted)
+    def test_fact_duplication(self):
+        """Test fact duplication."""
+        fact = self.env.assert_string('(implied-fact)')
+        new_fact = self.env.assert_string('(implied-fact)')
 
-        with self.assertRaises(RuntimeError):
-            fact['int'] = 42
-        with self.assertRaises(RuntimeError):
-            fact.assertit()
+        self.assertEqual(fact, new_fact)
+        self.assertEqual(len(tuple(self.env.facts())), 1)
+
+        self.env.fact_duplication = True
+
+        new_fact = self.env.assert_string('(implied-fact)')
+
+        self.assertNotEqual(fact, new_fact)
+        self.assertEqual(len(tuple(self.env.facts())), 2)
+
+    def test_modify_fact(self):
+        """Asserted TemplateFacts can be modified."""
+        template = self.env.find_template('template-fact')
+        fact = template.assert_fact(**{'int': 1,
+                                       'float': 2.2,
+                                       'str': '4',
+                                       'symbol': Symbol('five'),
+                                       'multifield': (1, 2)})
+
+        fact.modify_slots(symbol=Symbol('six'))
+        self.assertEqual(fact['symbol'], Symbol('six'))
 
     def test_retract_fact(self):
         """Retracted fact is not anymore in the fact list."""
-        self.env.assert_string('(implied-fact)')
+        fact = self.env.assert_string('(implied-fact)')
 
-        template = self.env.find_template('implied-fact')
-        fact = template.new_fact()
-
-        fact.extend((1, 2.3, '4', Symbol('five')))
-        fact.assertit()
-
-        self.assertTrue(fact.asserted)
         self.assertTrue(fact in list(self.env.facts()))
 
         fact.retract()
 
-        self.assertFalse(fact.asserted)
         self.assertFalse(fact in list(self.env.facts()))
 
     def test_implied_fact_template(self):
@@ -166,10 +147,9 @@ class TestFacts(unittest.TestCase):
         self.assertTrue(template.implied)
         self.assertEqual(template.name, 'implied-fact')
         self.assertEqual(template.module.name, 'MAIN')
-        self.assertEqual(template.slots(), ())
-        self.assertEqual(str(template), '(deftemplate MAIN::implied-fact)')
-        self.assertEqual(repr(template),
-                         'Template: (deftemplate MAIN::implied-fact)')
+        self.assertEqual(template.slots, ())
+        self.assertEqual(str(template), '')
+        self.assertEqual(repr(template), 'Template: ')
         self.assertFalse(template.deletable)
         with self.assertRaises(CLIPSError):
             template.undefine()
@@ -180,9 +160,10 @@ class TestFacts(unittest.TestCase):
 
         self.assertEqual(template.name, 'template-fact')
         self.assertEqual(template.module.name, 'MAIN')
-        self.assertEqual(len(tuple(template.slots())), 5)
-        self.assertEqual(str(template), DEFTEMPLATE.strip())
-        self.assertEqual(repr(template), 'Template: ' + DEFTEMPLATE.strip())
+        self.assertEqual(len(tuple(template.slots)), 5)
+        self.assertEqual(str(template), ' '.join(DEFTEMPLATE.split()))
+        self.assertEqual(repr(template),
+                         'Template: ' + ' '.join(DEFTEMPLATE.split()))
         self.assertTrue(template.deletable)
 
         template.undefine()
@@ -191,7 +172,7 @@ class TestFacts(unittest.TestCase):
         """TemplateFact template Slot."""
         template = self.env.find_template('template-fact')
 
-        slots = {s.name: s for s in template.slots()}
+        slots = {s.name: s for s in template.slots}
 
         self.assertEqual(slots['int'].name, 'int')
         self.assertFalse(slots['int'].multifield)

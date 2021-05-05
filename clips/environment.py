@@ -34,48 +34,49 @@ from clips.agenda import Agenda
 from clips.classes import Classes
 from clips.modules import Modules
 from clips.functions import Functions
-from clips.error import CLIPSError, ErrorRouter
-from clips.common import CLIPSType, EnvData, ENVIRONMENT_DATA
+from clips.routers import Routers, ErrorRouter
+from clips.common import CLIPSError
+from clips.common import initialize_environment_data, delete_environment_data
 
-from clips._clips import lib, ffi
+from clips._clips import lib
 
 
-class Environment(object):
+class Environment:
     """The environment class encapsulates an independent CLIPS engine
     with its own data structures.
 
     """
 
     __slots__ = ('_env', '_facts', '_agenda', '_classes',
-                 '_modules', '_functions', '_namespaces')
+                 '_modules', '_functions', '_routers', '_namespaces')
 
     def __init__(self):
         self._env = lib.CreateEnvironment()
+
+        initialize_environment_data(self._env)
+
         self._facts = Facts(self._env)
         self._agenda = Agenda(self._env)
         self._classes = Classes(self._env)
         self._modules = Modules(self._env)
         self._functions = Functions(self._env)
+        self._routers = Routers(self._env)
 
-        ENVIRONMENT_DATA[self._env] = EnvData({}, {})
+        self._routers.add_router(ErrorRouter())
 
         # mapping between the namespace and the methods it exposes
         self._namespaces = {m: n for n in (self._facts,
                                            self._agenda,
                                            self._classes,
                                            self._modules,
-                                           self._functions)
+                                           self._functions,
+                                           self._routers)
                             for m in dir(n) if not m.startswith('_')}
-
-        lib.define_function(self._env)
-
-        router = ErrorRouter('python-error-router', 40)
-        router.add_to_environment(self)
 
     def __del__(self):
         try:
+            delete_environment_data(self._env)
             lib.DestroyEnvironment(self._env)
-            del ENVIRONMENT_DATA[self._env]
         except (AttributeError, KeyError, TypeError):
             pass  # mostly happening during interpreter shutdown
 
@@ -100,134 +101,85 @@ class Environment(object):
     def __dir__(self):
         return dir(self.__class__) + list(self._namespaces.keys())
 
-    def load(self, path):
+    def load(self, path: str, binary: bool = False):
         """Load a set of constructs into the CLIPS data base.
 
-        Constructs can be in text or binary format.
+        If constructs were saved in binary format,
+        the binary parameter should be set to True.
 
-        The Python equivalent of the CLIPS load command.
+        Equivalent to the CLIPS (load) function.
 
         """
-        try:
-            self._load_binary(path)
-        except CLIPSError:
-            self._load_text(path)
+        if binary:
+            if not lib.Bload(self._env, path.encode()):
+                raise CLIPSError(self._env)
+        else:
+            ret = lib.Load(self._env, path.encode())
+            if ret != lib.LE_NO_ERROR:
+                raise CLIPSError(self._env, code=ret)
 
-    def _load_binary(self, path):
-        ret = lib.EnvBload(self._env, path.encode())
-        if ret != 1:
-            raise CLIPSError(self._env)
-
-    def _load_text(self, path):
-        ret = lib.EnvLoad(self._env, path.encode())
-        if ret != 1:
-            raise CLIPSError(self._env)
-
-    def save(self, path, binary=False):
+    def save(self, path: str, binary=False):
         """Save a set of constructs into the CLIPS data base.
 
         If binary is True, the constructs will be saved in binary format.
 
-        The Python equivalent of the CLIPS load command.
+        Equivalent to the CLIPS (load) function.
 
         """
         if binary:
-            ret = lib.EnvBsave(self._env, path.encode())
+            ret = lib.Bsave(self._env, path.encode())
         else:
-            ret = lib.EnvSave(self._env, path.encode())
+            ret = lib.Save(self._env, path.encode())
         if ret == 0:
             raise CLIPSError(self._env)
 
-    def batch_star(self, path):
+    def batch_star(self, path: str):
         """Evaluate the commands contained in the specific path.
 
-        The Python equivalent of the CLIPS batch* command.
+        Equivalent to the CLIPS (batch*) function.
 
         """
-        if lib.EnvBatchStar(self._env, path.encode()) != 1:
+        if lib.BatchStar(self._env, path.encode()) != 1:
             raise CLIPSError(self._env)
 
-    def build(self, construct):
+    def build(self, construct: str):
         """Build a single construct in CLIPS.
 
-        The Python equivalent of the CLIPS build command.
+        Equivalent to the CLIPS (build) function.
 
         """
-        if lib.EnvBuild(self._env, construct.encode()) != 1:
-            raise CLIPSError(self._env)
+        ret = lib.Build(self._env, construct.encode())
+        if ret != lib.BE_NO_ERROR:
+            raise CLIPSError(self._env, code=ret)
 
-    def eval(self, construct):
+    def eval(self, expression: str) -> type:
         """Evaluate an expression returning its value.
 
-        The Python equivalent of the CLIPS eval command.
+        Equivalent to the CLIPS (eval) function.
 
         """
-        data = clips.data.DataObject(self._env)
+        value = clips.values.clips_value(self._env)
 
-        if lib.EnvEval(self._env, construct.encode(), data.byref) != 1:
-            raise CLIPSError(self._env)
+        ret = lib.Eval(self._env, expression.encode(), value)
+        if ret != lib.EE_NO_ERROR:
+            raise CLIPSError(self._env, code=ret)
 
-        return data.value
+        return clips.values.python_value(self._env, value)
 
     def reset(self):
         """Reset the CLIPS environment.
 
-        The Python equivalent of the CLIPS reset command.
+        Equivalent to the CLIPS (reset) function.
 
         """
-        lib.EnvReset(self._env)
+        if lib.Reset(self._env):
+            raise CLIPSError(self._env)
 
     def clear(self):
         """Clear the CLIPS environment.
 
-        The Python equivalent of the CLIPS clear command.
+        Equivalent to the CLIPS (clear) function.
 
         """
-        lib.EnvClear(self._env)
-
-    def define_function(self, function, name=None):
-        """Define the Python function within the CLIPS environment.
-
-        If a name is given, it will be the function name within CLIPS.
-        Otherwise, the name of the Python function will be used.
-
-        The Python function will be accessible within CLIPS via its name
-        as if it was defined via the `deffunction` construct.
-
-        """
-        name = name if name is not None else function.__name__
-
-        ENVIRONMENT_DATA[self._env].user_functions[name] = function
-
-        self.build(DEFFUNCTION.format(name))
-
-
-@ffi.def_extern()
-def python_function(env, data_object):
-    arguments = []
-    temp = clips.data.DataObject(env)
-    data = clips.data.DataObject(env, data=data_object)
-    argnum = lib.EnvRtnArgCount(env)
-
-    if lib.EnvArgTypeCheck(
-            env, b'python-function', 1, CLIPSType.SYMBOL, temp.byref) != 1:
-        raise RuntimeError()
-
-    funcname = temp.value
-
-    for index in range(2, argnum + 1):
-        lib.EnvRtnUnknown(env, index, temp.byref)
-        arguments.append(temp.value)
-
-    try:
-        ret = ENVIRONMENT_DATA[env].user_functions[funcname](*arguments)
-    except Exception as error:
-        ret = str("%s: %s" % (error.__class__.__name__, error))
-
-    data.value = ret if ret is not None else clips.common.Symbol('nil')
-
-
-DEFFUNCTION = """
-(deffunction {0} ($?args)
-  (python-function {0} (expand$ ?args)))
-"""
+        if not lib.Clear(self._env):
+            raise CLIPSError(self._env)

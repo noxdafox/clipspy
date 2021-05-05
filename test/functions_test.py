@@ -1,6 +1,6 @@
 import unittest
 
-from clips import Environment, Symbol, CLIPSError
+from clips import Environment, Symbol
 
 
 DEFFUNCTION1 = """(deffunction function-sum (?a ?b) (+ ?a ?b))"""
@@ -24,10 +24,17 @@ class TestFunctions(unittest.TestCase):
     def test_function_call(self):
         """Test function call."""
         function = self.env.find_function('function-sum')
-        self.assertEqual(function('1 2'), 3)
+        self.assertEqual(function(1, 2), 3)
 
         function = self.env.find_generic('generic-sum')
-        self.assertEqual(function('1 2'), 3)
+        self.assertEqual(function(1, 2), 3)
+
+        self.assertEqual(self.env.call('function-sum', 1, 2), 3)
+        self.assertEqual(self.env.call('generic-sum', 1, 2), 3)
+
+        self.assertEqual(
+            self.env.call('create$', 1, 2.0, "three", Symbol('four')),
+            (1, 2.0, 'three', 'four'))
 
     def test_function(self):
         """Deffunction object test."""
@@ -77,8 +84,8 @@ class TestFunctions(unittest.TestCase):
 
     def test_method(self):
         """Defgeneric object test."""
-        restr = [2, 2, 2, 6, 9, Symbol('FALSE'), 1, Symbol('INTEGER'),
-                 Symbol('FALSE'), 1, Symbol('INTEGER')]
+        restr = (2, 2, 2, 6, 9, Symbol('FALSE'), 1, Symbol('INTEGER'),
+                 Symbol('FALSE'), 1, Symbol('INTEGER'))
         func = self.env.find_generic("generic-sum")
 
         method = tuple(func.methods())[0]

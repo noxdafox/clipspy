@@ -37,84 +37,42 @@
 
 import clips
 
-from clips.error import CLIPSError
+from clips.common import CLIPSError
 
 from clips._clips import lib, ffi
 
 
-class Modules(object):
-    """Globals and Modules namespace class.
+class Module:
+    """Modules are namespaces restricting the CLIPS constructs scope."""
 
-    .. note::
+    __slots__ = '_env', '_mdl'
 
-       All the Modules methods are accessible through the Environment class.
-
-    """
-
-    __slots__ = '_env'
-
-    def __init__(self, env):
+    def __init__(self, env: ffi.CData, mdl: ffi.CData):
         self._env = env
+        self._mdl = mdl
+
+    def __hash__(self):
+        return hash(self._mdl)
+
+    def __eq__(self, mdl):
+        return self._mdl == mdl._mdl
+
+    def __str__(self):
+        string = lib.DefmodulePPForm(self._mdl)
+        string = ffi.string(string).decode() if string != ffi.NULL else ''
+
+        return ' '.join(string.split())
+
+    def __repr__(self):
+        string = lib.DefmodulePPForm(self._mdl)
+        string = ffi.string(string).decode() if string != ffi.NULL else ''
+
+        return "%s: %s" % (self.__class__.__name__, ' '.join(string.split()))
 
     @property
-    def current_module(self):
-        """The current module.
-
-        The Python equivalent of the CLIPS get-current-module function.
-
-        """
-        return Module(self._env, lib.EnvGetCurrentModule(self._env))
-
-    @current_module.setter
-    def current_module(self, module):
-        """The current module.
-
-        The Python equivalent of the CLIPS get-current-module function.
-
-        """
-        lib.EnvSetCurrentModule(self._env, module._mdl)
-
-    @property
-    def globals_changed(self):
-        """True if any Global has changed."""
-        value = bool(lib.EnvGetGlobalsChanged(self._env))
-        lib.EnvSetGlobalsChanged(self._env, int(False))
-
-        return value
-
-    def globals(self):
-        """Iterates over the defined Globals."""
-        defglobal = lib.EnvGetNextDefglobal(self._env, ffi.NULL)
-
-        while defglobal != ffi.NULL:
-            yield Global(self._env, defglobal)
-
-            defglobal = lib.EnvGetNextDefglobal(self._env, defglobal)
-
-    def find_global(self, name):
-        """Find the Global by its name."""
-        defglobal = lib.EnvFindDefglobal(self._env, name.encode())
-        if defglobal == ffi.NULL:
-            raise LookupError("Global '%s' not found" % name)
-
-        return Global(self._env, defglobal)
-
-    def modules(self):
-        """Iterates over the defined Modules."""
-        defmodule = lib.EnvGetNextDefmodule(self._env, ffi.NULL)
-
-        while defmodule != ffi.NULL:
-            yield Module(self._env, defmodule)
-
-            defmodule = lib.EnvGetNextDefmodule(self._env, defmodule)
-
-    def find_module(self, name):
-        """Find the Module by its name."""
-        defmodule = lib.EnvFindDefmodule(self._env, name.encode())
-        if defmodule == ffi.NULL:
-            raise LookupError("Module '%s' not found" % name)
-
-        return Module(self._env, defmodule)
+    def name(self):
+        """Module name."""
+        return ffi.string(lib.DefmoduleName(self._mdl)).decode()
 
 
 class Global(object):
@@ -126,7 +84,7 @@ class Global(object):
 
     __slots__ = '_env', '_glb'
 
-    def __init__(self, env, glb):
+    def __init__(self, env: ffi.CData, glb: ffi.CData):
         self._env = env
         self._glb = glb
 
@@ -137,111 +95,158 @@ class Global(object):
         return self._glb == glb._glb
 
     def __str__(self):
-        string = ffi.string(lib.EnvGetDefglobalPPForm(self._env, self._glb))
+        string = lib.DefglobalPPForm(self._glb)
+        string = ffi.string(string).decode() if string != ffi.NULL else ''
 
-        return string.decode().rstrip('\n')
+        return ' '.join(string.split())
 
     def __repr__(self):
-        string = ffi.string(lib.EnvGetDefglobalPPForm(self._env, self._glb))
+        string = lib.DefglobalPPForm(self._glb)
+        string = ffi.string(string).decode() if string != ffi.NULL else ''
 
-        return "%s: %s" % (self.__class__.__name__,
-                           string.decode().rstrip('\n'))
+        return "%s: %s" % (self.__class__.__name__, ' '.join(string.split()))
 
     @property
-    def value(self):
+    def value(self) -> type:
         """Global value."""
-        data = clips.data.DataObject(self._env)
+        value = clips.values.clips_value(self._env)
 
-        if lib.EnvGetDefglobalValue(
-                self._env, self.name.encode(), data.byref) != 1:
-            raise CLIPSError(self._env)
+        lib.DefglobalGetValue(self._glb, value)
 
-        return data.value
+        return clips.values.python_value(self._env, value)
 
     @value.setter
-    def value(self, value):
+    def value(self, value: type):
         """Global value."""
-        data = clips.data.DataObject(self._env)
-        data.value = value
+        value = clips.values.clips_value(self._env, value=value)
 
-        if lib.EnvSetDefglobalValue(
-                self._env, self.name.encode(), data.byref) != 1:
-            raise CLIPSError(self._env)
+        lib.DefglobalSetValue(self._glb, value)
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Global name."""
-        return ffi.string(
-            lib.EnvGetDefglobalName(self._env, self._glb)).decode()
+        return ffi.string(lib.DefglobalName(self._glb)).decode()
 
     @property
-    def module(self):
+    def module(self) -> Module:
         """The module in which the Global is defined.
 
-        Python equivalent of the CLIPS defglobal-module command.
+        Equivalent to the CLIPS (defglobal-module) function.
 
         """
-        modname = ffi.string(lib.EnvDefglobalModule(self._env, self._glb))
-        defmodule = lib.EnvFindDefmodule(self._env, modname)
+        modname = ffi.string(lib.DefglobalModule(self._glb))
 
-        return Module(self._env, defmodule)
+        return Module(self._env, lib.FindDefmodule(self._env, modname))
 
     @property
-    def deletable(self):
+    def deletable(self) -> bool:
         """True if the Global can be deleted."""
-        return bool(lib.EnvIsDefglobalDeletable(self._env, self._glb))
+        return lib.DefglobalIsDeletable(self._glb)
 
     @property
-    def watch(self):
+    def watch(self) -> bool:
         """Whether or not the Global is being watched."""
-        return bool(lib.EnvGetDefglobalWatch(self._env, self._glb))
+        return lib.DefglobalGetWatch(self._glb)
 
     @watch.setter
-    def watch(self, flag):
+    def watch(self, flag: bool):
         """Whether or not the Global is being watched."""
-        lib.EnvSetDefglobalWatch(self._env, int(flag), self._glb)
+        lib.DefglobalSetWatch(self._glb, flag)
 
     def undefine(self):
         """Undefine the Global.
 
-        Python equivalent of the CLIPS undefglobal command.
+        Equivalent to the CLIPS (undefglobal) function.
 
         The object becomes unusable after this method has been called.
 
         """
-        if lib.EnvUndefglobal(self._env, self._glb) != 1:
+        if not lib.Undefglobal(self._glb, self._env):
             raise CLIPSError(self._env)
 
-        self._env = None
+        self._env = self._glb = None
 
 
-class Module(object):
-    """Modules are namespaces restricting the CLIPS constructs scope."""
-    __slots__ = '_env', '_mdl'
+class Modules:
+    """Globals and Modules namespace class.
 
-    def __init__(self, env, mdl):
+    .. note::
+
+       All the Modules methods are accessible through the Environment class.
+
+    """
+
+    __slots__ = '_env'
+
+    def __init__(self, env: ffi.CData):
         self._env = env
-        self._mdl = mdl
-
-    def __hash__(self):
-        return hash(self._mdl)
-
-    def __eq__(self, mdl):
-        return self._mdl == mdl._mdl
-
-    def __str__(self):
-        module = lib.EnvGetDefmodulePPForm(self._env, self._mdl)
-
-        return ffi.string(module).decode() if module != ffi.NULL else self.name
-
-    def __repr__(self):
-        module = lib.EnvGetDefmodulePPForm(self._env, self._mdl)
-        strn = ffi.string(module).decode() if module != ffi.NULL else self.name
-
-        return "%s: %s" % (self.__class__.__name__, strn)
 
     @property
-    def name(self):
-        """Global name."""
-        return ffi.string(
-            lib.EnvGetDefmoduleName(self._env, self._mdl)).decode()
+    def current_module(self) -> Module:
+        """The current module.
+
+        Equivalent to the CLIPS (get-current-module) function.
+
+        """
+        return Module(self._env, lib.GetCurrentModule(self._env))
+
+    @current_module.setter
+    def current_module(self, module: Module):
+        """The current module.
+
+        Equivalent to the CLIPS (get-current-module) function.
+
+        """
+        lib.SetCurrentModule(self._env, module._mdl)
+
+    @property
+    def reset_globals(self) -> bool:
+        """True if Globals reset behaviour is enabled."""
+        return lib.GetResetGlobals(self._env)
+
+    @reset_globals.setter
+    def reset_globals(self, value: bool):
+        """True if Globals reset behaviour is enabled."""
+        return lib.SetResetGlobals(self._env, value)
+
+    @property
+    def globals_changed(self) -> bool:
+        """True if any Global has changed since last check."""
+        value = lib.GetGlobalsChanged(self._env)
+        lib.SetGlobalsChanged(self._env, False)
+
+        return value
+
+    def globals(self) -> iter:
+        """Iterates over the defined Globals."""
+        defglobal = lib.GetNextDefglobal(self._env, ffi.NULL)
+
+        while defglobal != ffi.NULL:
+            yield Global(self._env, defglobal)
+
+            defglobal = lib.GetNextDefglobal(self._env, defglobal)
+
+    def find_global(self, name: str) -> Module:
+        """Find the Global by its name."""
+        defglobal = lib.FindDefglobal(self._env, name.encode())
+        if defglobal == ffi.NULL:
+            raise LookupError("Global '%s' not found" % name)
+
+        return Global(self._env, defglobal)
+
+    def modules(self) -> iter:
+        """Iterates over the defined Modules."""
+        defmodule = lib.GetNextDefmodule(self._env, ffi.NULL)
+
+        while defmodule != ffi.NULL:
+            yield Module(self._env, defmodule)
+
+            defmodule = lib.GetNextDefmodule(self._env, defmodule)
+
+    def find_module(self, name: str) -> Module:
+        """Find the Module by its name."""
+        defmodule = lib.FindDefmodule(self._env, name.encode())
+        if defmodule == ffi.NULL:
+            raise LookupError("Module '%s' not found" % name)
+
+        return Module(self._env, defmodule)
