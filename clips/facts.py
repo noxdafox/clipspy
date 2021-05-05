@@ -182,7 +182,7 @@ class TemplateFact(Fact):
             raise CLIPSError(self._env, code=lib.FBError(self._env))
 
 
-class Template(object):
+class Template:
     """A Fact Template is a formal representation of the fact data structure.
 
     In CLIPS, Templates are defined via the (deftemplate) function.
@@ -316,7 +316,7 @@ class Template(object):
         self._env = self._tpl = None
 
 
-class TemplateSlot(object):
+class TemplateSlot:
     """Template Facts organize the information within Slots.
 
     Slots might restrict the type or amount of data they store.

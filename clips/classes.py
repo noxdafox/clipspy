@@ -160,25 +160,8 @@ class Instance:
         if ret != lib.UIE_NO_ERROR:
             raise CLIPSError(self._env, code=ret)
 
-    def make_instance(self, command):
-        """Create and initialize an instance of a user-defined class.
 
-        command must be a string in the form:
-
-        (<instance-name> of <class-name> <slot-override>*)
-        <slot-override> :== (<slot-name> <constant>*)
-
-        Python equivalent of the CLIPS make-instance command.
-
-        """
-        ist = lib.EnvMakeInstance(self._env, command.encode())
-        if ist == ffi.NULL:
-            raise CLIPSError(self._env)
-
-        return Instance(self._env, ist)
-
-
-class Class(object):
+class Class:
     """A Class is a template for creating instances of objects.
 
     In CLIPS, Classes are defined via the (defclass) statement.
@@ -376,7 +359,7 @@ class Class(object):
         self._env = self._cls = None
 
 
-class ClassSlot(object):
+class ClassSlot:
     """A Class Instances organize the information within Slots.
 
     Slots might restrict the type or amount of data they store.

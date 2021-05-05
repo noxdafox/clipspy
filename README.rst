@@ -34,6 +34,15 @@ Most of the distributions should be supported.
 
     $ [sudo] pip install clipspy
 
+Windows
++++++++
+
+CLIPSPy comes as a wheel for most of the Python versions and architectures.
+
+.. code:: batch
+
+    > pip install clipspy
+
 Building from sources
 +++++++++++++++++++++
 

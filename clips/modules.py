@@ -75,7 +75,7 @@ class Module:
         return ffi.string(lib.DefmoduleName(self._mdl)).decode()
 
 
-class Global(object):
+class Global:
     """A CLIPS global variable.
 
     In CLIPS, Globals are defined via the (defglobal) statement.
