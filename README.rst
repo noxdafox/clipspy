@@ -1,7 +1,7 @@
 CLIPS Python bindings
 =====================
 
-Python CFFI_ bindings for the ‘C’ Language Integrated Production System CLIPS_ 6.40.
+Python CFFI_ bindings for the 'C' Language Integrated Production System CLIPS_ 6.40.
 
 :Source: https://github.com/noxdafox/clipspy
 :Documentation: https://clipspy.readthedocs.io
