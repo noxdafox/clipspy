@@ -345,7 +345,7 @@ The following conditional variables are accepted by the Makefile.
 Manylinux Wheels
 ++++++++++++++++
 
-It is possible to build `x86_64` wheels for Linux based on PEP-513_ standards. Only requirement is Docker_.
+It is possible to build `x86_64` wheels for Linux based on PEP-599_ standards. Only requirement is Docker_.
 
 To build the container, issue the following command from the project root folder.
 
@@ -380,5 +380,5 @@ Indices and tables
 .. _CFFI: https://cffi.readthedocs.io/en/latest/index.html
 .. _`Advanced Programming Guide`: http://clipsrules.sourceforge.net/documentation/v640/apg.pdf
 .. _`interned string`: https://docs.python.org/3/library/sys.html?highlight=sys%20intern#sys.intern
-.. _PEP-513: https://www.python.org/dev/peps/pep-0513/
+.. _PEP-599: https://www.python.org/dev/peps/pep-0599/
 .. _Docker: https://www.docker.com
