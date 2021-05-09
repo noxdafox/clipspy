@@ -58,7 +58,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'clipspy'
-copyright = '2017, Matteo Cafasso'
+copyright = '2016-2021, Matteo Cafasso'
 author = 'Matteo Cafasso'
 
 
