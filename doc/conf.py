@@ -19,6 +19,7 @@
 #
 import os
 import sys
+import fileinput
 from unittest.mock import MagicMock
 
 module_dir = os.path.abspath(
@@ -60,16 +61,23 @@ project = 'clipspy'
 copyright = '2017, Matteo Cafasso'
 author = 'Matteo Cafasso'
 
+
+CWD = os.path.dirname(__file__)
+
+
+def package_version():
+    module_path = os.path.join(CWD, '..', 'clips', '__init__.py')
+    for line in fileinput.input(module_path):
+        if line.startswith('__version__'):
+            return line.split('=')[-1].strip().replace('\'', '')
+
+
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
-version_path = os.path.join(
-    os.path.dirname(__file__), '..', 'version.py')
-
 # The short X.Y version.
-with open(version_path) as version_file:
-    version = version_file.read().split('=')[-1].strip().replace('"', '')
+version = package_version()
 # The full version, including alpha/beta/rc tags.
 release = version
 
@@ -257,21 +265,21 @@ htmlhelp_basename = 'clipspydoc'
 # -- Options for LaTeX output ---------------------------------------------
 
 latex_elements = {
-     # The paper size ('letterpaper' or 'a4paper').
-     #
-     # 'papersize': 'letterpaper',
+    # The paper size ('letterpaper' or 'a4paper').
+    #
+    # 'papersize': 'letterpaper',
 
-     # The font size ('10pt', '11pt' or '12pt').
-     #
-     # 'pointsize': '10pt',
+    # The font size ('10pt', '11pt' or '12pt').
+    #
+    # 'pointsize': '10pt',
 
-     # Additional stuff for the LaTeX preamble.
-     #
-     # 'preamble': '',
+    # Additional stuff for the LaTeX preamble.
+    #
+    # 'preamble': '',
 
-     # Latex figure (float) alignment
-     #
-     # 'figure_align': 'htbp',
+    # Latex figure (float) alignment
+    #
+    # 'figure_align': 'htbp',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples

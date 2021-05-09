@@ -27,13 +27,10 @@
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from clips.environment import Environment
-from clips.classes import Instance, Class
-from clips.values import Symbol, InstanceName
-from clips.routers import Router, LoggingRouter
-from clips.facts import ImpliedFact, TemplateFact, Template
-from clips.common import SaveMode, Strategy, SalienceEvaluation, Verbosity
-from clips.common import CLIPSError, ClassDefaultMode, TemplateSlotDefaultType
+
+__author__ = 'Matteo Cafasso'
+__version__ = '1.0.0'
+__license__ = 'BSD-3'
 
 
 __all__ = ('CLIPSError',
@@ -54,3 +51,12 @@ __all__ = ('CLIPSError',
            'Symbol',
            'InstanceName',
            'SaveMode')
+
+
+from clips.environment import Environment
+from clips.classes import Instance, Class
+from clips.values import Symbol, InstanceName
+from clips.routers import Router, LoggingRouter
+from clips.facts import ImpliedFact, TemplateFact, Template
+from clips.common import SaveMode, Strategy, SalienceEvaluation, Verbosity
+from clips.common import CLIPSError, ClassDefaultMode, TemplateSlotDefaultType
