@@ -60,11 +60,10 @@ setup(
     keywords="clips python cffi expert-system",
     url="https://github.com/noxdafox/clipspy",
     classifiers=[
-        "Programming Language :: Python",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: Implementation :: PyPy",
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
-        "License :: OSI Approved :: BSD License"
+        "License :: OSI Approved :: BSD-3 License"
     ]
 )
