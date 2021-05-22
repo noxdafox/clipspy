@@ -168,6 +168,9 @@ class TestFacts(unittest.TestCase):
 
         template.undefine()
 
+        with self.assertRaises(CLIPSError):
+            print(template)
+
     def test_template_fact_slot(self):
         """TemplateFact template Slot."""
         template = self.env.find_template('template-fact')

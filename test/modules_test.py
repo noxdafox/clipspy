@@ -64,9 +64,10 @@ class TestModules(unittest.TestCase):
 
         glbl.undefine()
 
-        self.assertTrue(glbl not in self.env.globals())
         with self.assertRaises(LookupError):
             self.env.find_global("b")
+        with self.assertRaises(CLIPSError):
+            print(glbl)
 
     def test_module(self):
         """Module object test."""

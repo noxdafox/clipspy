@@ -55,7 +55,7 @@ from clips._clips import lib, ffi
 class Fact:
     """CLIPS Fact base class."""
 
-    __slots__ = '_env', '_tpl', '_fact'
+    __slots__ = '_env', '_fact'
 
     def __init__(self, env: ffi.CData, fact: ffi.CData):
         self._env = env
@@ -99,7 +99,9 @@ class Fact:
     @property
     def template(self) -> 'Template':
         """The associated Template."""
-        return Template(self._env, lib.FactDeftemplate(self._fact))
+        template = lib.FactDeftemplate(self._fact)
+        name = ffi.string(lib.DeftemplateName(template)).decode()
+        return Template(self._env, name)
 
     def retract(self):
         """Retract the fact from the CLIPS environment."""
@@ -194,39 +196,46 @@ class Template:
 
     """
 
-    __slots__ = '_env', '_tpl'
+    __slots__ = '_env', '_name'
 
-    def __init__(self, env: ffi.CData, tpl: ffi.CData):
+    def __init__(self, env: ffi.CData, name: str):
         self._env = env
-        self._tpl = tpl
+        self._name = name.encode()
 
     def __hash__(self):
-        return hash(self._tpl)
+        return hash(self._ptr())
 
     def __eq__(self, tpl):
-        return self._tpl == tpl._tpl
+        return self._ptr() == tpl._ptr()
 
     def __str__(self):
-        string = lib.DeftemplatePPForm(self._tpl)
+        string = lib.DeftemplatePPForm(self._ptr())
         string = ffi.string(string).decode() if string != ffi.NULL else ''
 
         return ' '.join(string.split())
 
     def __repr__(self):
-        string = lib.DeftemplatePPForm(self._tpl)
+        string = lib.DeftemplatePPForm(self._ptr())
         string = ffi.string(string).decode() if string != ffi.NULL else ''
 
         return "%s: %s" % (self.__class__.__name__, ' '.join(string.split()))
 
+    def _ptr(self) -> ffi.CData:
+        tpl = lib.FindDeftemplate(self._env, self._name)
+        if tpl == ffi.NULL:
+            raise CLIPSError(self._env, 'Template <%s> not defined' % self.name)
+
+        return tpl
+
     @property
     def implied(self) -> bool:
         """True if the Template is implied."""
-        return lib.ImpliedDeftemplate(self._tpl)
+        return lib.ImpliedDeftemplate(self._ptr())
 
     @property
     def name(self) -> str:
         """Template name."""
-        return ffi.string(lib.DeftemplateName(self._tpl)).decode()
+        return self._name.decode()
 
     @property
     def module(self) -> Module:
@@ -235,14 +244,14 @@ class Template:
         Python equivalent of the CLIPS deftemplate-module command.
 
         """
-        modname = ffi.string(lib.DeftemplateModule(self._tpl))
+        name = ffi.string(lib.DeftemplateModule(self._ptr())).decode()
 
-        return Module(self._env, lib.FindDefmodule(self._env, modname))
+        return Module(self._env, name)
 
     @property
     def deletable(self) -> bool:
         """True if the Template can be undefined."""
-        return lib.DeftemplateIsDeletable(self._tpl)
+        return lib.DeftemplateIsDeletable(self._ptr())
 
     @property
     def slots(self) -> tuple:
@@ -252,28 +261,28 @@ class Template:
 
         value = clips.values.clips_value(self._env)
 
-        lib.DeftemplateSlotNames(self._tpl, value)
+        lib.DeftemplateSlotNames(self._ptr(), value)
 
-        return tuple(TemplateSlot(self._env, self._tpl, n.encode())
+        return tuple(TemplateSlot(self._env, self.name, n)
                      for n in clips.values.python_value(self._env, value))
 
     @property
     def watch(self) -> bool:
         """Whether or not the Template is being watched."""
-        return lib.GetDeftemplateWatch(self._tpl)
+        return lib.GetDeftemplateWatch(self._ptr())
 
     @watch.setter
     def watch(self, flag: bool):
         """Whether or not the Template is being watched."""
-        lib.EnvSetDeftemplateWatch(self._tpl, flag)
+        lib.EnvSetDeftemplateWatch(self._ptr(), flag)
 
     def facts(self) -> iter:
         """Iterate over the asserted Facts belonging to this Template."""
-        fact = lib.GetNextFactInTemplate(self._tpl, ffi.NULL)
+        fact = lib.GetNextFactInTemplate(self._ptr(), ffi.NULL)
         while fact != ffi.NULL:
-            yield new_fact(self._tpl, fact)
+            yield new_fact(self._ptr(), fact)
 
-            fact = lib.GetNextFactInTemplate(self._tpl, fact)
+            fact = lib.GetNextFactInTemplate(self._ptr(), fact)
 
     def assert_fact(self, **slots) -> TemplateFact:
         """Assert a new fact with the given slot values.
@@ -285,7 +294,7 @@ class Template:
 
         """
         builder = environment_builder(self._env, 'fact')
-        ret = lib.FBSetDeftemplate(builder, lib.DeftemplateName(self._tpl))
+        ret = lib.FBSetDeftemplate(builder, self._name)
         if ret != lib.FBE_NO_ERROR:
             raise CLIPSError(self._env, code=ret)
 
@@ -310,10 +319,8 @@ class Template:
         The object becomes unusable after this method has been called.
 
         """
-        if not lib.Undeftemplate(self._tpl, self._env):
+        if not lib.Undeftemplate(self._ptr(), self._env):
             raise CLIPSError(self._env)
-
-        self._env = self._tpl = None
 
 
 class TemplateSlot:
@@ -325,22 +332,30 @@ class TemplateSlot:
 
     __slots__ = '_env', '_tpl', '_name'
 
-    def __init__(self, env: ffi.CData, tpl: ffi.CData, name: str):
+    def __init__(self, env: ffi.CData, tpl: str, name: str):
         self._env = env
-        self._tpl = tpl
-        self._name = name
+        self._tpl = tpl.encode()
+        self._name = name.encode()
 
     def __hash__(self):
-        return hash(self._tpl) + hash(self._name)
+        return hash(self._ptr()) + hash(self._name)
 
     def __eq__(self, slot):
-        return self._tpl == slot._tpl and self._name == slot._name
+        return self._ptr() == slot._ptr() and self._name == slot._name
 
     def __str__(self):
         return self.name
 
     def __repr__(self):
         return "%s: %s" % (self.__class__.__name__, self.name)
+
+    def _ptr(self) -> ffi.CData:
+        tpl = lib.FindDeftemplate(self._env, self._tpl)
+        if tpl == ffi.NULL:
+            raise CLIPSError(
+                self._env, 'Template <%s> not defined' % self._tpl.decode())
+
+        return tpl
 
     @property
     def name(self) -> str:
@@ -350,7 +365,7 @@ class TemplateSlot:
     @property
     def multifield(self) -> bool:
         """True if the slot is a multifield slot."""
-        return bool(lib.DeftemplateSlotMultiP(self._tpl, self._name))
+        return bool(lib.DeftemplateSlotMultiP(self._ptr(), self._name))
 
     @property
     def types(self) -> tuple:
@@ -361,10 +376,10 @@ class TemplateSlot:
         """
         value = clips.values.clips_value(self._env)
 
-        if lib.DeftemplateSlotTypes(self._tpl, self._name, value):
+        if lib.DeftemplateSlotTypes(self._ptr(), self._name, value):
             return clips.values.python_value(self._env, value)
-        else:
-            raise CLIPSError(self._env)
+
+        raise CLIPSError(self._env)
 
     @property
     def range(self) -> tuple:
@@ -375,10 +390,10 @@ class TemplateSlot:
         """
         value = clips.values.clips_value(self._env)
 
-        if lib.DeftemplateSlotRange(self._tpl, self._name, value):
+        if lib.DeftemplateSlotRange(self._ptr(), self._name, value):
             return clips.values.python_value(self._env, value)
-        else:
-            raise CLIPSError(self._env)
+
+        raise CLIPSError(self._env)
 
     @property
     def cardinality(self) -> tuple:
@@ -389,11 +404,10 @@ class TemplateSlot:
         """
         value = clips.values.clips_value(self._env)
 
-        if lib.DeftemplateSlotCardinality(
-                self._tpl, self._name, value):
+        if lib.DeftemplateSlotCardinality(self._ptr(), self._name, value):
             return clips.values.python_value(self._env, value)
-        else:
-            raise CLIPSError(self._env)
+
+        raise CLIPSError(self._env)
 
     @property
     def default_type(self) -> TemplateSlotDefaultType:
@@ -403,7 +417,7 @@ class TemplateSlot:
 
         """
         return TemplateSlotDefaultType(
-            lib.DeftemplateSlotDefaultP(self._tpl, self._name))
+            lib.DeftemplateSlotDefaultP(self._ptr(), self._name))
 
     @property
     def default_value(self) -> type:
@@ -414,11 +428,10 @@ class TemplateSlot:
         """
         value = clips.values.clips_value(self._env)
 
-        if lib.DeftemplateSlotDefaultValue(
-                self._tpl, self._name, value):
+        if lib.DeftemplateSlotDefaultValue(self._ptr(), self._name, value):
             return clips.values.python_value(self._env, value)
-        else:
-            raise CLIPSError(self._env)
+
+        raise CLIPSError(self._env)
 
     @property
     def allowed_values(self) -> tuple:
@@ -429,11 +442,10 @@ class TemplateSlot:
         """
         value = clips.values.clips_value(self._env)
 
-        if lib.DeftemplateSlotAllowedValues(
-                self._tpl, self._name, value):
+        if lib.DeftemplateSlotAllowedValues(self._ptr(), self._name, value):
             return clips.values.python_value(self._env, value)
-        else:
-            raise CLIPSError(self._env)
+
+        raise CLIPSError(self._env)
 
 
 class DefinedFacts:
@@ -447,34 +459,42 @@ class DefinedFacts:
 
     """
 
-    __slots__ = '_env', '_dfc'
+    __slots__ = '_env', '_name'
 
-    def __init__(self, env: ffi.CData, dfc: ffi.CData):
+    def __init__(self, env: ffi.CData, name: str):
         self._env = env
-        self._dfc = dfc
+        self._name = name.encode()
 
     def __hash__(self):
-        return hash(self._dfc)
+        return hash(self._ptr())
 
     def __eq__(self, dfc):
-        return self._dfc == dfc._dfc
+        return self._ptr() == dfc._ptr()
 
     def __str__(self):
-        string = lib.DeffactsPPForm(self._dfc)
+        string = lib.DeffactsPPForm(self._ptr())
         string = ffi.string(string).decode() if string != ffi.NULL else ''
 
         return ' '.join(string.split())
 
     def __repr__(self):
-        string = lib.DeffactsPPForm(self._dfc)
+        string = lib.DeffactsPPForm(self._ptr())
         string = ffi.string(string).decode() if string != ffi.NULL else ''
 
         return "%s: %s" % (self.__class__.__name__, ' '.join(string.split()))
 
+    def _ptr(self) -> ffi.CData:
+        dfc = lib.FindDeffacts(self._env, self._name)
+        if dfc == ffi.NULL:
+            raise CLIPSError(
+                self._env, 'DefinedFacts <%s> not defined' % self.name)
+
+        return dfc
+
     @property
     def name(self) -> str:
-        """The DefinedFacts name."""
-        return ffi.string(lib.DeffactsName(self._dfc)).decode()
+        """DefinedFacts name."""
+        return self._name.decode()
 
     @property
     def module(self) -> Module:
@@ -483,14 +503,14 @@ class DefinedFacts:
         Python equivalent of the CLIPS (deffacts-module) command.
 
         """
-        modname = ffi.string(lib.DeffactsModule(self._dfc))
+        name = ffi.string(lib.DeffactsModule(self._ptr())).decode()
 
-        return Module(self._env, lib.FindDefmodule(self._env, modname))
+        return Module(self._env, name)
 
     @property
     def deletable(self) -> bool:
         """True if the DefinedFacts can be undefined."""
-        return lib.DeffactsIsDeletable(self._dfc)
+        return lib.DeffactsIsDeletable(self._ptr())
 
     def undefine(self):
         """Undefine the DefinedFacts.
@@ -500,10 +520,8 @@ class DefinedFacts:
         The object becomes unusable after this method has been called.
 
         """
-        if not lib.Undeffacts(self._dfc, self._env):
+        if not lib.Undeffacts(self._ptr(), self._env):
             raise CLIPSError(self._env)
-
-        self._env = self._dfc = None
 
 
 class Facts:
@@ -515,7 +533,7 @@ class Facts:
 
     """
 
-    __slots__ = '_env'
+    __slots__ = ['_env']
 
     def __init__(self, env):
         self._env = env
@@ -541,7 +559,8 @@ class Facts:
         """Iterate over the defined Templates."""
         template = lib.GetNextDeftemplate(self._env, ffi.NULL)
         while template != ffi.NULL:
-            yield Template(self._env, template)
+            name = ffi.string(lib.DeftemplateName(template)).decode()
+            yield Template(self._env, name)
 
             template = lib.GetNextDeftemplate(self._env, template)
 
@@ -551,7 +570,7 @@ class Facts:
         if tpl == ffi.NULL:
             raise LookupError("Template '%s' not found" % name)
 
-        return Template(self._env, tpl)
+        return Template(self._env, name)
 
     def assert_string(self, string: str) -> (ImpliedFact, TemplateFact):
         """Assert a fact as string."""

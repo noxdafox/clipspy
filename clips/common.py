@@ -36,10 +36,11 @@ from clips._clips import lib, ffi
 class CLIPSError(RuntimeError):
     """An error occurred within the CLIPS Environment."""
 
-    def __init__(self, env: ffi.CData, code: int = None):
-        routers = environment_data(env, 'routers')
-        message = routers['python-error-router'].last_message
-        message = message.lstrip('\n').rstrip('\n').replace('\n', ' ')
+    def __init__(self, env: ffi.CData, message: str = None, code: int = None):
+        if message is None:
+            routers = environment_data(env, 'routers')
+            message = routers['python-error-router'].last_message
+            message = message.lstrip('\n').rstrip('\n').replace('\n', ' ')
 
         super(CLIPSError, self).__init__(message)
 

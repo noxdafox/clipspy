@@ -104,7 +104,10 @@ class Instance:
     @property
     def instance_class(self) -> 'Class':
         """Instance class."""
-        return Class(self._env, lib.InstanceClass(self._ist))
+        defclass = lib.InstanceClass(self._ist)
+        name = ffi.string(lib.DefclassName(defclass)).decode()
+
+        return Class(self._env, name)
 
     def modify_slots(self, **slots):
         """Modify one or more slot values of the Instance.
@@ -171,44 +174,51 @@ class Class:
 
     """
 
-    __slots__ = '_env', '_cls'
+    __slots__ = '_env', '_name'
 
-    def __init__(self, env: ffi.CData, cls: ffi.CData):
+    def __init__(self, env: ffi.CData, name: str):
         self._env = env
-        self._cls = cls
+        self._name = name.encode()
 
     def __hash__(self):
-        return hash(self._cls)
+        return hash(self._ptr())
 
     def __eq__(self, cls):
-        return self._cls == cls._cls
+        return self._ptr() == cls._ptr()
 
     def __str__(self):
-        string = lib.DefclassPPForm(self._cls)
+        string = lib.DefclassPPForm(self._ptr())
         string = ffi.string(string).decode() if string != ffi.NULL else ''
 
         return ' '.join(string.split())
 
     def __repr__(self):
-        string = lib.DefclassPPForm(self._cls)
+        string = lib.DefclassPPForm(self._ptr())
         string = ffi.string(string).decode() if string != ffi.NULL else ''
 
         return "%s: %s" % (self.__class__.__name__, ' '.join(string.split()))
 
+    def _ptr(self) -> ffi.CData:
+        cls = lib.FindDefclass(self._env, self._name)
+        if cls == ffi.NULL:
+            raise CLIPSError(self._env, 'Class <%s> not defined' % self.name)
+
+        return cls
+
     @property
     def abstract(self) -> bool:
         """True if the class is abstract."""
-        return lib.ClassAbstractP(self._cls)
+        return lib.ClassAbstractP(self._ptr())
 
     @property
     def reactive(self) -> bool:
         """True if the class is reactive."""
-        return lib.ClassReactiveP(self._cls)
+        return lib.ClassReactiveP(self._ptr())
 
     @property
     def name(self) -> str:
         """Class name."""
-        return ffi.string(lib.DefclassName(self._cls)).decode()
+        return ffi.string(lib.DefclassName(self._ptr())).decode()
 
     @property
     def module(self) -> Module:
@@ -217,34 +227,34 @@ class Class:
         Equivalent to the CLIPS (defclass-module) function.
 
         """
-        modname = ffi.string(lib.DefclassModule(self._cls))
+        name = ffi.string(lib.DefclassModule(self._ptr())).decode()
 
-        return Module(self._env, lib.FindDefmodule(self._env, modname))
+        return Module(self._env, name)
 
     @property
     def deletable(self) -> bool:
         """True if the Class can be deleted."""
-        return lib.DefclassIsDeletable(self._cls)
+        return lib.DefclassIsDeletable(self._ptr())
 
     @property
     def watch_instances(self) -> bool:
         """Whether or not the Class Instances are being watched."""
-        return lib.DefclassGetWatchInstances(self._cls)
+        return lib.DefclassGetWatchInstances(self._ptr())
 
     @watch_instances.setter
     def watch_instances(self, flag: bool):
         """Whether or not the Class Instances are being watched."""
-        lib.DefclassSetWatchInstances(self._cls, flag)
+        lib.DefclassSetWatchInstances(self._ptr(), flag)
 
     @property
     def watch_slots(self) -> bool:
         """Whether or not the Class Slots are being watched."""
-        return lib.DefclassGetWatchSlots(self._cls)
+        return lib.DefclassGetWatchSlots(self._ptr())
 
     @watch_slots.setter
     def watch_slots(self, flag: bool):
         """Whether or not the Class Slots are being watched."""
-        lib.DefclassSetWatchSlots(self._cls, flag)
+        lib.DefclassSetWatchSlots(self._ptr(), flag)
 
     def make_instance(self, instance_name: str = None, **slots) -> Instance:
         """Make a new Instance from this Class.
@@ -253,7 +263,7 @@ class Class:
 
         """
         builder = environment_builder(self._env, 'instance')
-        ret = lib.IBSetDefclass(builder, lib.DefclassName(self._cls))
+        ret = lib.IBSetDefclass(builder, lib.DefclassName(self._ptr()))
         if ret != lib.IBE_NO_ERROR:
             raise CLIPSError(self._env, code=ret)
 
@@ -274,29 +284,29 @@ class Class:
 
     def subclass(self, defclass: 'Class') -> bool:
         """True if the Class is a subclass of the given one."""
-        return lib.SubclassP(self._cls, defclass._cls)
+        return lib.SubclassP(self._ptr(), defclass._ptr())
 
     def superclass(self, defclass: 'Class') -> bool:
         """True if the Class is a superclass of the given one."""
-        return lib.SuperclassP(self._cls, defclass._cls)
+        return lib.SuperclassP(self._ptr(), defclass._ptr())
 
     def slots(self, inherited: bool = False) -> iter:
         """Iterate over the Slots of the class."""
         value = clips.values.clips_value(self._env)
 
-        lib.ClassSlots(self._cls, value, inherited)
+        lib.ClassSlots(self._ptr(), value, inherited)
 
-        return (ClassSlot(self._env, self._cls, n.encode())
+        return (ClassSlot(self._env, self.name, n)
                 for n in clips.values.python_value(self._env, value))
 
     def instances(self) -> iter:
         """Iterate over the instances of the class."""
-        ist = lib.GetNextInstanceInClass(self._cls, ffi.NULL)
+        ist = lib.GetNextInstanceInClass(self._ptr(), ffi.NULL)
 
         while ist != ffi.NULL:
             yield Instance(self._env, ist)
 
-            ist = lib.GetNextInstanceInClass(self._cls, ist)
+            ist = lib.GetNextInstanceInClass(self._ptr(), ist)
 
     def subclasses(self, inherited: bool = False) -> iter:
         """Iterate over the subclasses of the class.
@@ -306,7 +316,7 @@ class Class:
         """
         value = clips.values.clips_value(self._env)
 
-        lib.ClassSubclasses(self._cls, value, inherited)
+        lib.ClassSubclasses(self._ptr(), value, inherited)
 
         for defclass in classes(
                 self._env, clips.values.python_value(self._env, value)):
@@ -320,7 +330,7 @@ class Class:
         """
         value = clips.values.clips_value(self._env)
 
-        lib.ClassSuperclasses(self._cls, value, int(inherited))
+        lib.ClassSuperclasses(self._ptr(), value, int(inherited))
 
         for defclass in classes(
                 self._env, clips.values.python_value(self._env, value)):
@@ -328,22 +338,22 @@ class Class:
 
     def message_handlers(self) -> iter:
         """Iterate over the message handlers of the class."""
-        index = lib.GetNextDefmessageHandler(self._cls, 0)
+        index = lib.GetNextDefmessageHandler(self._ptr(), 0)
 
         while index != 0:
-            yield MessageHandler(self._env, self._cls, index)
+            yield MessageHandler(self._env, self.name, index)
 
-            index = lib.GetNextDefmessageHandler(self._cls, index)
+            index = lib.GetNextDefmessageHandler(self._ptr(), index)
 
     def find_message_handler(
             self, name: str, handler_type: str = 'primary') -> 'MessageHandler':
         """Returns the MessageHandler given its name and type."""
-        ret = lib.FindDefmessageHandler(
-            self._cls, name.encode(), handler_type.encode())
-        if ret == 0:
+        ident = lib.FindDefmessageHandler(
+            self._ptr(), name.encode(), handler_type.encode())
+        if ident == 0:
             raise CLIPSError(self._env)
 
-        return MessageHandler(self._env, self._cls, ret)
+        return MessageHandler(self._env, self.name, ident)
 
     def undefine(self):
         """Undefine the Class.
@@ -353,10 +363,8 @@ class Class:
         The object becomes unusable after this method has been called.
 
         """
-        if not lib.Undefclass(self._cls, self._env):
+        if not lib.Undefclass(self._ptr(), self._env):
             raise CLIPSError(self._env)
-
-        self._env = self._cls = None
 
 
 class ClassSlot:
@@ -368,22 +376,30 @@ class ClassSlot:
 
     __slots__ = '_env', '_cls', '_name'
 
-    def __init__(self, env: ffi.CData, cls: ffi.CData, name: str):
+    def __init__(self, env: ffi.CData, cls: str, name: str):
         self._env = env
-        self._cls = cls
-        self._name = name
+        self._cls = cls.encode()
+        self._name = name.encode()
 
     def __hash__(self):
-        return hash(self._cls) + hash(self._name)
+        return hash(self._ptr()) + hash(self._name)
 
     def __eq__(self, cls):
-        return self._cls == cls._cls and self._name == cls._name
+        return self._ptr() == cls._ptr() and self._name == cls._name
 
     def __str__(self):
         return self.name
 
     def __repr__(self):
         return "%s: %s" % (self.__class__.__name__, self.name)
+
+    def _ptr(self) -> ffi.CData:
+        cls = lib.FindDefclass(self._env, self._cls)
+        if cls == ffi.NULL:
+            raise CLIPSError(
+                self._env, 'Class <%s> not defined' % self._cls.decode())
+
+        return cls
 
     @property
     def name(self):
@@ -393,22 +409,22 @@ class ClassSlot:
     @property
     def public(self) -> bool:
         """True if the Slot is public."""
-        return lib.SlotPublicP(self._cls, self._name)
+        return lib.SlotPublicP(self._ptr(), self._name)
 
     @property
     def initializable(self) -> bool:
         """True if the Slot is initializable."""
-        return lib.SlotInitableP(self._cls, self._name)
+        return lib.SlotInitableP(self._ptr(), self._name)
 
     @property
     def writable(self) -> bool:
         """True if the Slot is writable."""
-        return lib.SlotWritableP(self._cls, self._name)
+        return lib.SlotWritableP(self._ptr(), self._name)
 
     @property
     def accessible(self) -> bool:
         """True if the Slot is directly accessible."""
-        return lib.SlotDirectAccessP(self._cls, self._name)
+        return lib.SlotDirectAccessP(self._ptr(), self._name)
 
     @property
     def types(self) -> tuple:
@@ -419,7 +435,7 @@ class ClassSlot:
         """
         value = clips.values.clips_value(self._env)
 
-        if lib.SlotTypes(self._cls, self._name, value):
+        if lib.SlotTypes(self._ptr(), self._name, value):
             return clips.values.python_value(self._env, value)
         else:
             raise CLIPSError(self._env)
@@ -433,7 +449,7 @@ class ClassSlot:
         """
         value = clips.values.clips_value(self._env)
 
-        if lib.SlotSources(self._cls, self._name, value):
+        if lib.SlotSources(self._ptr(), self._name, value):
             return clips.values.python_value(self._env, value)
         else:
             raise CLIPSError(self._env)
@@ -447,7 +463,7 @@ class ClassSlot:
         """
         value = clips.values.clips_value(self._env)
 
-        if lib.SlotRange(self._cls, self._name, value):
+        if lib.SlotRange(self._ptr(), self._name, value):
             return clips.values.python_value(self._env, value)
         else:
             raise CLIPSError(self._env)
@@ -461,7 +477,7 @@ class ClassSlot:
         """
         value = clips.values.clips_value(self._env)
 
-        if lib.SlotFacets(self._cls, self._name, value):
+        if lib.SlotFacets(self._ptr(), self._name, value):
             return clips.values.python_value(self._env, value)
         else:
             raise CLIPSError(self._env)
@@ -475,7 +491,7 @@ class ClassSlot:
         """
         value = clips.values.clips_value(self._env)
 
-        if lib.SlotCardinality(self._cls, self._name, value):
+        if lib.SlotCardinality(self._ptr(), self._name, value):
             return clips.values.python_value(self._env, value)
         else:
             raise CLIPSError(self._env)
@@ -489,7 +505,7 @@ class ClassSlot:
         """
         value = clips.values.clips_value(self._env)
 
-        if lib.SlotDefaultValue(self._cls, self._name, value):
+        if lib.SlotDefaultValue(self._ptr(), self._name, value):
             return clips.values.python_value(self._env, value)
         else:
             raise CLIPSError(self._env)
@@ -503,7 +519,7 @@ class ClassSlot:
         """
         value = clips.values.clips_value(self._env)
 
-        if lib.SlotAllowedValues(self._cls, self._name, value):
+        if lib.SlotAllowedValues(self._ptr(), self._name, value):
             return clips.values.python_value(self._env, value)
         else:
             raise CLIPSError(self._env)
@@ -516,7 +532,7 @@ class ClassSlot:
         """
         value = clips.values.clips_value(self._env)
 
-        lib.SlotAllowedClasses(self._cls, self._name, value)
+        lib.SlotAllowedClasses(self._ptr(), self._name, value)
 
         if isinstance(value, tuple):
             for defclass in classes(self._env, value):
@@ -530,55 +546,63 @@ class MessageHandler:
 
     __slots__ = '_env', '_cls', '_idx'
 
-    def __init__(self, env: ffi.CData, cls: ffi.CData, idx: int):
+    def __init__(self, env: ffi.CData, cls: str, idx: int):
         self._env = env
-        self._cls = cls
+        self._cls = cls.encode()
         self._idx = idx
 
     def __hash__(self):
-        return hash(self._cls) + self._idx
+        return hash(self._ptr()) + self._idx
 
     def __eq__(self, cls):
-        return self._cls == cls._cls and self._idx == cls._idx
+        return self._ptr() == cls._ptr() and self._idx == cls._idx
 
     def __str__(self):
-        string = lib.DefmessageHandlerPPForm(self._cls, self._idx)
+        string = lib.DefmessageHandlerPPForm(self._ptr(), self._idx)
         string = ffi.string(string).decode() if string != ffi.NULL else ''
 
         return ' '.join(string.split())
 
     def __repr__(self):
-        string = lib.DefmessageHandlerPPForm(self._cls, self._idx)
+        string = lib.DefmessageHandlerPPForm(self._ptr(), self._idx)
         string = ffi.string(string).decode() if string != ffi.NULL else ''
 
         return "%s: %s" % (self.__class__.__name__, ' '.join(string.split()))
+
+    def _ptr(self) -> ffi.CData:
+        cls = lib.FindDefclass(self._env, self._cls)
+        if cls == ffi.NULL:
+            raise CLIPSError(
+                self._env, 'Class <%s> not defined' % self._cls.decode())
+
+        return cls
 
     @property
     def name(self) -> str:
         """MessageHandler name."""
         return ffi.string(lib.DefmessageHandlerName(
-            self._cls, self._idx)).decode()
+            self._ptr(), self._idx)).decode()
 
     @property
     def type(self) -> str:
         """MessageHandler type."""
         return ffi.string(lib.DefmessageHandlerType(
-            self._cls, self._idx)).decode()
+            self._ptr(), self._idx)).decode()
 
     @property
     def watch(self) -> bool:
         """True if the MessageHandler is being watched."""
-        return lib.DefmessageHandlerGetWatch(self._cls, self._idx)
+        return lib.DefmessageHandlerGetWatch(self._ptr(), self._idx)
 
     @watch.setter
     def watch(self, flag: bool):
         """True if the MessageHandler is being watched."""
-        lib.DefmessageHandlerSetWatch(self._cls, self._idx, flag)
+        lib.DefmessageHandlerSetWatch(self._ptr(), self._idx, flag)
 
     @property
     def deletable(self) -> bool:
         """True if the MessageHandler can be deleted."""
-        return lib.DefmessageHandlerIsDeletable(self._cls, self._idx)
+        return lib.DefmessageHandlerIsDeletable(self._ptr(), self._idx)
 
     def undefine(self):
         """Undefine the MessageHandler.
@@ -588,10 +612,8 @@ class MessageHandler:
         The object becomes unusable after this method has been called.
 
         """
-        if not lib.UndefmessageHandler(self._cls, self._idx, self._env):
+        if not lib.UndefmessageHandler(self._ptr(), self._idx, self._env):
             raise CLIPSError(self._env)
-
-        self._env = self._cls = self._idx = None
 
 
 class DefinedInstances:
@@ -605,34 +627,42 @@ class DefinedInstances:
 
     """
 
-    __slots__ = '_env', '_dis'
+    __slots__ = '_env', '_name'
 
-    def __init__(self, env: ffi.CData, dis: ffi.CData):
+    def __init__(self, env: ffi.CData, name: str):
         self._env = env
-        self._dis = dis
+        self._name = name.encode()
 
     def __hash__(self):
-        return hash(self._dis)
+        return hash(self._ptr())
 
     def __eq__(self, dis):
-        return self._dis == dis._dis
+        return self._ptr() == dis._ptr()
 
     def __str__(self):
-        string = lib.DefinstancesPPForm(self._dis)
+        string = lib.DefinstancesPPForm(self._ptr())
         string = ffi.string(string).decode() if string != ffi.NULL else ''
 
         return ' '.join(string.split())
 
     def __repr__(self):
-        string = lib.DefinstancesPPForm(self._dis)
+        string = lib.DefinstancesPPForm(self._ptr())
         string = ffi.string(string).decode() if string != ffi.NULL else ''
 
         return "%s: %s" % (self.__class__.__name__, ' '.join(string.split()))
 
+    def _ptr(self) -> ffi.CData:
+        dfc = lib.FindDefinstances(self._env, self._name)
+        if dfc == ffi.NULL:
+            raise CLIPSError(
+                self._env, 'DefinedInstances <%s> not defined' % self.name)
+
+        return dfc
+
     @property
     def name(self) -> str:
         """The DefinedInstances name."""
-        return ffi.string(lib.DefinstancesName(self._dis)).decode()
+        return ffi.string(lib.DefinstancesName(self._ptr())).decode()
 
     @property
     def module(self) -> Module:
@@ -641,14 +671,14 @@ class DefinedInstances:
         Python equivalent of the CLIPS (definstances-module) command.
 
         """
-        modname = ffi.string(lib.DefinstancesModule(self._dis))
+        name = ffi.string(lib.DefinstancesModule(self._ptr())).decode()
 
-        return Module(self._env, lib.FindDefmodule(self._env, modname))
+        return Module(self._env, name)
 
     @property
     def deletable(self) -> bool:
         """True if the DefinedInstances can be undefined."""
-        return lib.DefinstancesIsDeletable(self._dis)
+        return lib.DefinstancesIsDeletable(self._ptr())
 
     def undefine(self):
         """Undefine the DefinedInstances.
@@ -658,10 +688,8 @@ class DefinedInstances:
         The object becomes unusable after this method has been called.
 
         """
-        if not lib.Undefinstances(self._dis, self._env):
+        if not lib.Undefinstances(self._ptr(), self._env):
             raise CLIPSError(self._env)
-
-        self._env = self._dis = None
 
 
 class Classes:
@@ -673,7 +701,7 @@ class Classes:
 
     """
 
-    __slots__ = '_env'
+    __slots__ = ['_env']
 
     def __init__(self, env: ffi.CData):
         self._env = env
@@ -709,7 +737,8 @@ class Classes:
         defclass = lib.GetNextDefclass(self._env, ffi.NULL)
 
         while defclass != ffi.NULL:
-            yield Class(self._env, defclass)
+            name = ffi.string(lib.DefclassName(defclass)).decode()
+            yield Class(self._env, name)
 
             defclass = lib.GetNextDefclass(self._env, defclass)
 
@@ -719,7 +748,7 @@ class Classes:
         if defclass == ffi.NULL:
             raise LookupError("Class '%s' not found" % name)
 
-        return Class(self._env, defclass)
+        return Class(self._env, name)
 
     def instances(self) -> iter:
         """Iterate over the defined Instancees."""
@@ -836,7 +865,7 @@ def classes(env: ffi.CData, names: (list, tuple)) -> iter:
         if defclass == ffi.NULL:
             raise CLIPSError(env)
 
-        yield Class(env, defclass)
+        yield Class(env, name)
 
 
 def instance_pp_string(env: ffi.CData, ist: ffi.CData) -> str:

@@ -1,6 +1,6 @@
 import unittest
 
-from clips import Environment, Symbol
+from clips import Environment, Symbol, CLIPSError
 
 
 DEFFUNCTION1 = """(deffunction function-sum (?a ?b) (+ ?a ?b))"""
@@ -55,9 +55,10 @@ class TestFunctions(unittest.TestCase):
 
         func.undefine()
 
-        self.assertTrue(func not in self.env.functions())
         with self.assertRaises(LookupError):
             self.env.find_function("function-sub")
+        with self.assertRaises(CLIPSError):
+            print(func)
 
     def test_generic(self):
         """Defgeneric object test."""
@@ -78,9 +79,10 @@ class TestFunctions(unittest.TestCase):
 
         func.undefine()
 
-        self.assertTrue(func not in self.env.generics())
         with self.assertRaises(LookupError):
             self.env.find_function("generic-sum")
+        with self.assertRaises(CLIPSError):
+            print(func)
 
     def test_method(self):
         """Defgeneric object test."""

@@ -51,34 +51,41 @@ class Rule:
 
     """
 
-    __slots__ = '_env', '_rule'
+    __slots__ = '_env', '_name'
 
-    def __init__(self, env: ffi.CData, rule: ffi.CData):
+    def __init__(self, env: ffi.CData, name: str):
         self._env = env
-        self._rule = rule
+        self._name = name.encode()
 
     def __hash__(self):
-        return hash(self._rule)
+        return hash(self._ptr())
 
     def __eq__(self, rule):
-        return self._rule == rule._rule
+        return self._ptr() == rule._ptr()
 
     def __str__(self):
-        string = lib.DefrulePPForm(self._rule)
+        string = lib.DefrulePPForm(self._ptr())
         string = ffi.string(string).decode() if string != ffi.NULL else ''
 
         return ' '.join(string.split())
 
     def __repr__(self):
-        string = lib.DefrulePPForm(self._rule)
+        string = lib.DefrulePPForm(self._ptr())
         string = ffi.string(string).decode() if string != ffi.NULL else ''
 
         return "%s: %s" % (self.__class__.__name__, ' '.join(string.split()))
 
+    def _ptr(self) -> ffi.CData:
+        rule = lib.FindDefrule(self._env, self._name)
+        if rule == ffi.NULL:
+            raise CLIPSError(self._env, 'Rule <%s> not defined' % self.name)
+
+        return rule
+
     @property
     def name(self) -> str:
         """Rule name."""
-        return ffi.string(lib.DefruleName(self._rule)).decode()
+        return self._name.decode()
 
     @property
     def module(self) -> Module:
@@ -87,34 +94,34 @@ class Rule:
         Equivalent to the CLIPS (defrule-module) function.
 
         """
-        modname = ffi.string(lib.DefruleModule(self._rule))
+        name = ffi.string(lib.DefruleModule(self._ptr())).decode()
 
-        return Module(self._env, lib.FindDefmodule(self._env, modname))
+        return Module(self._env, name)
 
     @property
     def deletable(self) -> bool:
         """True if the Rule can be deleted."""
-        return lib.DefruleIsDeletable(self._rule)
+        return lib.DefruleIsDeletable(self._ptr())
 
     @property
     def watch_firings(self) -> bool:
         """Whether or not the Rule firings are being watched."""
-        return lib.DefruleGetWatchFirings(self._rule)
+        return lib.DefruleGetWatchFirings(self._ptr())
 
     @watch_firings.setter
     def watch_firings(self, flag: bool):
         """Whether or not the Rule firings are being watched."""
-        lib.DefruleSetWatchFirings(self._rule, flag)
+        lib.DefruleSetWatchFirings(self._ptr(), flag)
 
     @property
     def watch_activations(self) -> bool:
         """Whether or not the Rule Activations are being watched."""
-        return lib.DefruleGetWatchActivations(self._rule)
+        return lib.DefruleGetWatchActivations(self._ptr())
 
     @watch_activations.setter
     def watch_activations(self, flag: bool):
         """Whether or not the Rule Activations are being watched."""
-        lib.DefruleSetWatchActivations(self._rule, flag)
+        lib.DefruleSetWatchActivations(self._ptr(), flag)
 
     def matches(self, verbosity: Verbosity = Verbosity.TERSE):
         """Shows partial matches and activations.
@@ -132,7 +139,7 @@ class Rule:
         """
         value = clips.values.clips_value(self._env)
 
-        lib.Matches(self._rule, verbosity, value)
+        lib.Matches(self._ptr(), verbosity, value)
 
         return clips.values.python_value(self._env, value)
 
@@ -142,7 +149,7 @@ class Rule:
         Equivalent to the CLIPS (refresh) function.
 
         """
-        lib.Refresh(self._rule)
+        lib.Refresh(self._ptr())
 
     def add_breakpoint(self):
         """Add a breakpoint for the Rule.
@@ -150,7 +157,7 @@ class Rule:
         Equivalent to the CLIPS (add-break) function.
 
         """
-        lib.SetBreak(self._rule)
+        lib.SetBreak(self._ptr())
 
     def remove_breakpoint(self):
         """Remove a breakpoint for the Rule.
@@ -158,7 +165,7 @@ class Rule:
         Equivalent to the CLIPS (remove-break) function.
 
         """
-        if not lib.RemoveBreak(self._env, self._rule):
+        if not lib.RemoveBreak(self._env, self._ptr()):
             raise CLIPSError("No breakpoint set")
 
     def undefine(self):
@@ -169,10 +176,8 @@ class Rule:
         The object becomes unusable after this method has been called.
 
         """
-        if not lib.Undefrule(self._rule, self._env):
+        if not lib.Undefrule(self._ptr(), self._env):
             raise CLIPSError(self._env)
-
-        self._env = self._rule = None
 
 
 class Activation:
@@ -186,6 +191,8 @@ class Activation:
     def __init__(self, env: ffi.CData, act: ffi.CData):
         self._env = env
         self._act = act
+        self._pp = activation_pp_string(self._env, self._act)
+        self._rule_name = ffi.string(lib.ActivationRuleName(self._act))
 
     def __hash__(self):
         return hash(self._act)
@@ -194,33 +201,48 @@ class Activation:
         return self._act == act._act
 
     def __str__(self):
-        return ' '.join(activation_pp_string(self._env, self._act).split())
+        return ' '.join(self._pp.split())
 
     def __repr__(self):
-        string = ' '.join(activation_pp_string(self._env, self._act).split())
+        return "%s: %s" % (self.__class__.__name__, ' '.join(self._pp.split()))
 
-        return "%s: %s" % (self.__class__.__name__, string)
+    def _assert_is_active(self):
+        """As the engine does not provide means to find activations,
+        the existence of the pointer in the activations list is tested instead.
+
+        """
+        activations = []
+        activation = lib.GetNextActivation(self._env, ffi.NULL)
+
+        while activation != ffi.NULL:
+            activations.append(activation)
+            activation = lib.GetNextActivation(self._env, activation)
+
+        if self._act not in activations:
+            raise CLIPSError(
+                self._env, "Activation %s not in the agenda" % self.name)
 
     @property
     def name(self) -> str:
         """Activation Rule name."""
-        return ffi.string(lib.ActivationRuleName(self._act)).decode()
+        return self._rule_name.decode()
 
     @property
     def salience(self) -> int:
         """Activation salience value."""
+        self._assert_is_active()
         return lib.ActivationGetSalience(self._act)
 
     @salience.setter
     def salience(self, salience: int):
         """Activation salience value."""
+        self._assert_is_active()
         lib.ActivationSetSalience(self._act, salience)
 
     def delete(self):
         """Remove the activation from the agenda."""
+        self._assert_is_active()
         lib.DeleteActivation(self._act)
-
-        self._env = self._act = None
 
 
 class Agenda:
@@ -254,7 +276,9 @@ class Agenda:
         Equivalent to the CLIPS (get-focus) function.
 
         """
-        return Module(self._env, lib.GetFocus(self._env))
+        name = ffi.string(lib.DefmoduleName(lib.GetFocus(self._env))).decode()
+
+        return Module(self._env, name)
 
     @focus.setter
     def focus(self, module: Module):
@@ -263,7 +287,7 @@ class Agenda:
         Equivalent to the CLIPS (get-focus) function.
 
         """
-        return lib.Focus(module._mdl)
+        return lib.Focus(module._ptr())
 
     @property
     def strategy(self) -> Strategy:
@@ -306,17 +330,18 @@ class Agenda:
         rule = lib.GetNextDefrule(self._env, ffi.NULL)
 
         while rule != ffi.NULL:
-            yield Rule(self._env, rule)
+            name = ffi.string(lib.DefruleName(rule)).decode()
+            yield Rule(self._env, name)
 
             rule = lib.GetNextDefrule(self._env, rule)
 
-    def find_rule(self, rule: str) -> Rule:
+    def find_rule(self, name: str) -> Rule:
         """Find a Rule by name."""
-        defrule = lib.FindDefrule(self._env, rule.encode())
+        defrule = lib.FindDefrule(self._env, name.encode())
         if defrule == ffi.NULL:
-            raise LookupError("Rule '%s' not found" % defrule)
+            raise LookupError("Rule '%s' not found" % name)
 
-        return Rule(self._env, defrule)
+        return Rule(self._env, name)
 
     def reorder(self, module: Module = None):
         """Reorder the Activations in the Agenda.
@@ -327,7 +352,7 @@ class Agenda:
 
         """
         if module is not None:
-            lib.ReorderAgenda(module._mdl)
+            lib.ReorderAgenda(module._ptr())
         else:
             lib.ReorderAllAgendas(self._env)
 
@@ -341,7 +366,7 @@ class Agenda:
 
         """
         if module is not None:
-            lib.RefreshAgenda(module._mdl)
+            lib.RefreshAgenda(module._ptr())
         else:
             lib.RefreshAllAgendas(self._env)
 

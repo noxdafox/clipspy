@@ -186,7 +186,8 @@ class Routers:
        All the Routers methods are accessible through the Environment class.
 
     """
-    __slots__ = '_env'
+
+    __slots__ = ['_env']
 
     def __init__(self, env):
         self._env = env

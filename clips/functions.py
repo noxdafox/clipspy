@@ -53,26 +53,26 @@ class Function:
 
     """
 
-    __slots__ = '_env', '_fnc'
+    __slots__ = '_env', '_name'
 
-    def __init__(self, env: ffi.CData, fnc: ffi.CData):
+    def __init__(self, env: ffi.CData, name: str):
         self._env = env
-        self._fnc = fnc
+        self._name = name.encode()
 
     def __hash__(self):
-        return hash(self._fnc)
+        return hash(self._ptr())
 
     def __eq__(self, fnc):
-        return self._fnc == fnc._fnc
+        return self._ptr() == fnc._ptr()
 
     def __str__(self):
-        string = lib.DeffunctionPPForm(self._fnc)
+        string = lib.DeffunctionPPForm(self._ptr())
         string = ffi.string(string).decode() if string != ffi.NULL else ''
 
         return ' '.join(string.split())
 
     def __repr__(self):
-        string = lib.DeffunctionPPForm(self._fnc)
+        string = lib.DeffunctionPPForm(self._ptr())
         string = ffi.string(string).decode() if string != ffi.NULL else ''
 
         return "%s: %s" % (self.__class__.__name__, ' '.join(string.split()))
@@ -87,16 +87,24 @@ class Function:
             lib.FCBAppend(
                 builder, clips.values.clips_value(self._env, value=argument))
 
-        ret = lib.FCBCall(builder, lib.DeffunctionName(self._fnc), value)
+        ret = lib.FCBCall(builder, lib.DeffunctionName(self._ptr()), value)
         if ret != lib.FCBE_NO_ERROR:
             raise CLIPSError(self._env, code=ret)
 
         return clips.values.python_value(self._env, value)
 
+    def _ptr(self) -> ffi.CData:
+        dfc = lib.FindDeffunction(self._env, self._name)
+        if dfc == ffi.NULL:
+            raise CLIPSError(
+                self._env, 'Function <%s> not defined' % self.name)
+
+        return dfc
+
     @property
     def name(self) -> str:
         """Function name."""
-        return ffi.string(lib.DeffunctionName(self._fnc)).decode()
+        return self._name.decode()
 
     @property
     def module(self) -> Module:
@@ -105,24 +113,24 @@ class Function:
         Equivalent to the CLIPS (deffunction-module) functions.
 
         """
-        modname = ffi.string(lib.DeffunctionModule(self._fnc))
+        name = ffi.string(lib.DeffunctionModule(self._ptr())).decode()
 
-        return Module(self._env, lib.FindDefmodule(self._env, modname))
+        return Module(self._env, name)
 
     @property
     def deletable(self) -> bool:
         """True if the Function can be deleted."""
-        return lib.DeffunctionIsDeletable(self._fnc)
+        return lib.DeffunctionIsDeletable(self._ptr())
 
     @property
     def watch(self) -> bool:
         """Whether or not the Function is being watched."""
-        return lib.DeffunctionGetWatch(self._fnc)
+        return lib.DeffunctionGetWatch(self._ptr())
 
     @watch.setter
     def watch(self, flag: bool):
         """Whether or not the Function is being watched."""
-        lib.DeffunctionSetWatch(self._fnc, flag)
+        lib.DeffunctionSetWatch(self._ptr(), flag)
 
     def undefine(self):
         """Undefine the Function.
@@ -132,10 +140,8 @@ class Function:
         The object becomes unusable after this method has been called.
 
         """
-        if not lib.Undeffunction(self._fnc, self._env):
+        if not lib.Undeffunction(self._ptr(), self._env):
             raise CLIPSError(self._env)
-
-        self._env = self._fnc = None
 
 
 class Generic:
@@ -145,26 +151,26 @@ class Generic:
 
     """
 
-    __slots__ = '_env', '_gnc'
+    __slots__ = '_env', '_name'
 
-    def __init__(self, env: ffi.CData, gnc: ffi.CData):
+    def __init__(self, env: ffi.CData, name: str):
         self._env = env
-        self._gnc = gnc
+        self._name = name.encode()
 
     def __hash__(self):
-        return hash(self._gnc)
+        return hash(self._ptr())
 
     def __eq__(self, gnc):
-        return self._gnc == gnc._gnc
+        return self._ptr() == gnc._ptr()
 
     def __str__(self):
-        string = lib.DefgenericPPForm(self._gnc)
+        string = lib.DefgenericPPForm(self._ptr())
         string = ffi.string(string).decode() if string != ffi.NULL else ''
 
         return ' '.join(string.split())
 
     def __repr__(self):
-        string = lib.DefgenericPPForm(self._gnc)
+        string = lib.DefgenericPPForm(self._ptr())
         string = ffi.string(string).decode() if string != ffi.NULL else ''
 
         return "%s: %s" % (self.__class__.__name__, ' '.join(string.split()))
@@ -179,16 +185,24 @@ class Generic:
             lib.FCBAppend(
                 builder, clips.values.clips_value(self._env, value=argument))
 
-        ret = lib.FCBCall(builder, lib.DefgenericName(self._gnc), value)
+        ret = lib.FCBCall(builder, lib.DefgenericName(self._ptr()), value)
         if ret != lib.FCBE_NO_ERROR:
             raise CLIPSError(self._env, code=ret)
 
         return clips.values.python_value(self._env, value)
 
+    def _ptr(self) -> ffi.CData:
+        gnc = lib.FindDefgeneric(self._env, self._name)
+        if gnc == ffi.NULL:
+            raise CLIPSError(
+                self._env, 'Generic <%s> not defined' % self.name)
+
+        return gnc
+
     @property
     def name(self) -> str:
         """Generic name."""
-        return ffi.string(lib.DefgenericName(self._gnc)).decode()
+        return self._name.decode()
 
     @property
     def module(self) -> Module:
@@ -197,33 +211,33 @@ class Generic:
         Equivalent to the CLIPS (defgeneric-module) generics.
 
         """
-        modname = ffi.string(lib.DefgenericModule(self._gnc))
+        name = ffi.string(lib.DefgenericModule(self._ptr())).decode()
 
-        return Module(self._env, lib.FindDefmodule(self._env, modname))
+        return Module(self._env, name)
 
     @property
     def deletable(self) -> bool:
         """True if the Generic can be deleted."""
-        return lib.DefgenericIsDeletable(self._gnc)
+        return lib.DefgenericIsDeletable(self._ptr())
 
     @property
     def watch(self) -> bool:
         """Whether or not the Generic is being watched."""
-        return lib.DefgenericGetWatch(self._gnc)
+        return lib.DefgenericGetWatch(self._ptr())
 
     @watch.setter
     def watch(self, flag: bool):
         """Whether or not the Generic is being watched."""
-        lib.DefgenericSetWatch(self._gnc, flag)
+        lib.DefgenericSetWatch(self._ptr(), flag)
 
     def methods(self) -> iter:
         """Iterates over the defined Methods."""
-        index = lib.GetNextDefmethod(self._gnc, 0)
+        index = lib.GetNextDefmethod(self._ptr(), 0)
 
         while index != 0:
-            yield Method(self._env, self._gnc, index)
+            yield Method(self._env, self.name, index)
 
-            index = lib.GetNextDefmethod(self._gnc, index)
+            index = lib.GetNextDefmethod(self._ptr(), index)
 
     def undefine(self):
         """Undefine the Generic.
@@ -233,10 +247,8 @@ class Generic:
         The object becomes unusable after this method has been called.
 
         """
-        if not lib.Undefgeneric(self._gnc, self._env):
+        if not lib.Undefgeneric(self._ptr(), self._env):
             raise CLIPSError(self._env)
-
-        self._env = self._gnc = None
 
 
 class Method(object):
@@ -247,49 +259,57 @@ class Method(object):
 
     __slots__ = '_env', '_gnc', '_idx'
 
-    def __init__(self, env: ffi.CData, gnc: ffi.CData, idx: int):
+    def __init__(self, env: ffi.CData, gnc: str, idx: int):
         self._env = env
-        self._gnc = gnc
+        self._gnc = gnc.encode()
         self._idx = idx
 
     def __hash__(self):
-        return hash(self._gnc) + self._idx
+        return hash(self._ptr()) + self._idx
 
     def __eq__(self, gnc):
-        return self._gnc == gnc._gnc and self._idx == gnc._idx
+        return self._ptr() == gnc._ptr() and self._idx == gnc._idx
 
     def __str__(self):
-        string = lib.DefmethodPPForm(self._gnc, self._idx)
+        string = lib.DefmethodPPForm(self._ptr(), self._idx)
         string = ffi.string(string).decode() if string != ffi.NULL else ''
 
         return ' '.join(string.split())
 
     def __repr__(self):
-        string = lib.DefmethodPPForm(self._gnc, self._idx)
+        string = lib.DefmethodPPForm(self._ptr(), self._idx)
         string = ffi.string(string).decode() if string != ffi.NULL else ''
 
         return "%s: %s" % (self.__class__.__name__, ' '.join(string.split()))
 
+    def _ptr(self) -> ffi.CData:
+        gnc = lib.FindDefgeneric(self._env, self._gnc)
+        if gnc == ffi.NULL:
+            raise CLIPSError(
+                self._env, 'Generic <%s> not defined' % self._gnc)
+
+        return gnc
+
     @property
     def watch(self) -> bool:
         """Whether or not the Method is being watched."""
-        return lib.DefmethodGetWatch(self._gnc, self._idx)
+        return lib.DefmethodGetWatch(self._ptr(), self._idx)
 
     @watch.setter
     def watch(self, flag: bool):
         """Whether or not the Method is being watched."""
-        lib.DefmethodSetWatch(self._gnc, self._idx, flag)
+        lib.DefmethodSetWatch(self._ptr(), self._idx, flag)
 
     @property
     def deletable(self):
         """True if the Template can be undefined."""
-        return lib.DefmethodIsDeletable(self._gnc, self._idx)
+        return lib.DefmethodIsDeletable(self._ptr(), self._idx)
 
     @property
     def restrictions(self) -> tuple:
         value = clips.values.clips_value(self._env)
 
-        lib.GetMethodRestrictions(self._gnc, self._idx, value)
+        lib.GetMethodRestrictions(self._ptr(), self._idx, value)
 
         return clips.values.python_value(self._env, value)
 
@@ -297,7 +317,7 @@ class Method(object):
     def description(self) -> str:
         builder = environment_builder(self._env, 'string')
         lib.SBReset(builder)
-        lib.DefmethodDescription(self._gnc, self._idx, builder)
+        lib.DefmethodDescription(self._ptr(), self._idx, builder)
 
         return ffi.string(builder.contents).decode()
 
@@ -309,10 +329,8 @@ class Method(object):
         The object becomes unusable after this method has been called.
 
         """
-        if not lib.Undefmethod(self._gnc, self._idx, self._env):
+        if not lib.Undefmethod(self._ptr(), self._idx, self._env):
             raise CLIPSError(self._env)
-
-        self._env = self._gnc = self._idx = None
 
 
 class Functions:
@@ -324,7 +342,7 @@ class Functions:
 
     """
 
-    __slots__ = '_env'
+    __slots__ = ['_env']
 
     def __init__(self, env: ffi.CData):
         self._env = env
@@ -350,7 +368,8 @@ class Functions:
         deffunction = lib.GetNextDeffunction(self._env, ffi.NULL)
 
         while deffunction != ffi.NULL:
-            yield Function(self._env, deffunction)
+            name = ffi.string(lib.DeffunctionName(deffunction)).decode()
+            yield Function(self._env, name)
 
             deffunction = lib.GetNextDeffunction(self._env, deffunction)
 
@@ -360,16 +379,17 @@ class Functions:
         if deffunction == ffi.NULL:
             raise LookupError("Function '%s' not found" % name)
 
-        return Function(self._env, deffunction)
+        return Function(self._env, name)
 
     def generics(self) -> iter:
         """Iterates over the defined Generics."""
         defgeneric = lib.GetNextDefgeneric(self._env, ffi.NULL)
 
         while defgeneric != ffi.NULL:
-            yield Generic(self._env, defgeneric)
+            name = ffi.string(lib.DefgenericName(defgeneric)).decode()
+            yield Generic(self._env, name)
 
-            defgeneric = lib.GetNextDefgeneric(self._env, defgeneric)
+            defgeneric = lib.GetNextDefgeneric(self._env, name)
 
     def find_generic(self, name: str) -> Generic:
         """Find the Generic by its name."""
@@ -377,7 +397,7 @@ class Functions:
         if defgeneric == ffi.NULL:
             raise LookupError("Generic '%s' not found" % name)
 
-        return Generic(self._env, defgeneric)
+        return Generic(self._env, name)
 
     def define_function(self, function: callable, name: str = None):
         """Define the Python function within the CLIPS environment.

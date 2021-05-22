@@ -64,6 +64,8 @@ class TestAgenda(unittest.TestCase):
         activation.delete()
 
         self.assertFalse(activation in self.env.activations())
+        with self.assertRaises(CLIPSError):
+            activation.salience = 10
 
     def test_agenda_run(self):
         """Agenda rules are fired on run."""
@@ -139,8 +141,8 @@ class TestRules(unittest.TestCase):
 
         with self.assertRaises(LookupError):
             self.env.find_rule('rule-name')
-        with self.assertRaises(TypeError):
-            rule.name
+        with self.assertRaises(CLIPSError):
+            print(rule)
 
     def test_rule_matches(self):
         """Partial rule matches."""
