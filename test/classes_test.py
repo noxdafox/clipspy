@@ -26,6 +26,9 @@ DEFCLASSES = [
       (+ ?self:One ?self:Two))
     """
 ]
+DEFINSTANCES = """(definstances MAIN::defined-instances
+   (c1 of ConcreteClass (Slot a-slot)))
+"""
 
 
 class TempFile:
@@ -247,3 +250,24 @@ class TestClasses(unittest.TestCase):
         instance = defclass.make_instance('test-instance', One=1, Two=2)
 
         self.assertEqual(instance.send('test-handler'), 3)
+
+    def test_defined_instances(self):
+        """DefinedInstances tests."""
+        self.env.build(DEFINSTANCES)
+        definstances = self.env.find_defined_instances('defined-instances')
+        listed = list(self.env.defined_instances())
+
+        self.assertEqual(definstances, listed[0])
+        self.assertEqual(definstances.name, 'defined-instances')
+        self.assertEqual(
+            str(definstances),
+            '(definstances MAIN::defined-instances (c1 of ConcreteClass (Slot a-slot)))')
+        self.assertEqual(definstances.module.name, 'MAIN')
+        self.assertTrue(definstances.deletable)
+
+        definstances.undefine()
+
+        with self.assertRaises(LookupError):
+            self.env.find_defined_instances('defined-instances')
+        with self.assertRaises(CLIPSError):
+            print(definstances)

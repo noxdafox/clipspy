@@ -13,7 +13,7 @@ DEFTEMPLATE = """(deftemplate MAIN::template-fact
    (multislot multifield))
 """
 DEFFACTS = """(deffacts MAIN::defined-facts
-   (one "two" three))
+   (template-fact (int 1) (str "a-string")))
 """
 
 IMPL_STR = '(implied-fact 1 2.3 "4" five)'
@@ -42,7 +42,6 @@ class TestFacts(unittest.TestCase):
     def setUp(self):
         self.env = Environment()
         self.env.build(DEFTEMPLATE)
-        self.env.build(DEFFACTS)
 
     def test_facts(self):
         """Facts wrapper test."""
@@ -202,13 +201,15 @@ class TestFacts(unittest.TestCase):
 
     def test_defined_facts(self):
         """DefinedFacts tests."""
+        self.env.build(DEFFACTS)
         deffacts = self.env.find_defined_facts('defined-facts')
         listed = list(self.env.defined_facts())
 
         self.assertEqual(deffacts, listed[0])
         self.assertEqual(deffacts.name, 'defined-facts')
         self.assertEqual(
-            str(deffacts), '(deffacts MAIN::defined-facts (one "two" three))')
+            str(deffacts),
+            '(deffacts MAIN::defined-facts (template-fact (int 1) (str "a-string")))')
         self.assertEqual(deffacts.module.name, 'MAIN')
         self.assertTrue(deffacts.deletable)
 

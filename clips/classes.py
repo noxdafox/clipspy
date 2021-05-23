@@ -662,7 +662,7 @@ class DefinedInstances:
     @property
     def name(self) -> str:
         """The DefinedInstances name."""
-        return ffi.string(lib.DefinstancesName(self._ptr())).decode()
+        return self._name.decode()
 
     @property
     def module(self) -> Module:
@@ -749,6 +749,23 @@ class Classes:
             raise LookupError("Class '%s' not found" % name)
 
         return Class(self._env, name)
+
+    def defined_instances(self) -> iter:
+        """Iterate over the DefinedInstances."""
+        definstances = lib.GetNextDefinstances(self._env, ffi.NULL)
+        while definstances != ffi.NULL:
+            name = ffi.string(lib.DefinstancesName(definstances)).decode()
+            yield DefinedInstances(self._env, name)
+
+            definstances = lib.GetNextDefinstances(self._env, definstances)
+
+    def find_defined_instances(self, name: str) -> DefinedInstances:
+        """Find the DefinedInstances by its name."""
+        dfs = lib.FindDefinstances(self._env, name.encode())
+        if dfs == ffi.NULL:
+            raise LookupError("DefinedInstances '%s' not found" % name)
+
+        return DefinedInstances(self._env, name)
 
     def instances(self) -> iter:
         """Iterate over the defined Instancees."""
