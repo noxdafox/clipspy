@@ -555,7 +555,7 @@ class Facts:
 
             fact = lib.GetNextFact(self._env, fact)
 
-    def templates(self):
+    def templates(self) -> iter:
         """Iterate over the defined Templates."""
         template = lib.GetNextDeftemplate(self._env, ffi.NULL)
         while template != ffi.NULL:
@@ -571,6 +571,23 @@ class Facts:
             raise LookupError("Template '%s' not found" % name)
 
         return Template(self._env, name)
+
+    def defined_facts(self) -> iter:
+        """Iterate over the DefinedFacts."""
+        deffacts = lib.GetNextDeffacts(self._env, ffi.NULL)
+        while deffacts != ffi.NULL:
+            name = ffi.string(lib.DeffactsName(deffacts)).decode()
+            yield DefinedFacts(self._env, name)
+
+            deffacts = lib.GetNextDeffacts(self._env, deffacts)
+
+    def find_defined_facts(self, name: str) -> DefinedFacts:
+        """Find the DefinedFacts by its name."""
+        dfs = lib.FindDeffacts(self._env, name.encode())
+        if dfs == ffi.NULL:
+            raise LookupError("DefinedFacts '%s' not found" % name)
+
+        return DefinedFacts(self._env, name)
 
     def assert_string(self, string: str) -> (ImpliedFact, TemplateFact):
         """Assert a fact as string."""

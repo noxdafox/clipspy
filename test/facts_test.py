@@ -12,6 +12,9 @@ DEFTEMPLATE = """(deftemplate MAIN::template-fact
    (slot symbol (type SYMBOL))
    (multislot multifield))
 """
+DEFFACTS = """(deffacts MAIN::defined-facts
+   (one "two" three))
+"""
 
 IMPL_STR = '(implied-fact 1 2.3 "4" five)'
 IMPL_RPR = 'ImpliedFact: (implied-fact 1 2.3 "4" five)'
@@ -39,6 +42,7 @@ class TestFacts(unittest.TestCase):
     def setUp(self):
         self.env = Environment()
         self.env.build(DEFTEMPLATE)
+        self.env.build(DEFFACTS)
 
     def test_facts(self):
         """Facts wrapper test."""
@@ -168,6 +172,8 @@ class TestFacts(unittest.TestCase):
 
         template.undefine()
 
+        with self.assertRaises(LookupError):
+            self.env.find_template('template-fact')
         with self.assertRaises(CLIPSError):
             print(template)
 
@@ -193,3 +199,22 @@ class TestFacts(unittest.TestCase):
         self.assertEqual(slots['str'].default_value, '')
         self.assertEqual(slots['int'].allowed_values,
                          (0, 1, 2, 3, 4, 5, 6, 7, 8, 9))
+
+    def test_defined_facts(self):
+        """DefinedFacts tests."""
+        deffacts = self.env.find_defined_facts('defined-facts')
+        listed = list(self.env.defined_facts())
+
+        self.assertEqual(deffacts, listed[0])
+        self.assertEqual(deffacts.name, 'defined-facts')
+        self.assertEqual(
+            str(deffacts), '(deffacts MAIN::defined-facts (one "two" three))')
+        self.assertEqual(deffacts.module.name, 'MAIN')
+        self.assertTrue(deffacts.deletable)
+
+        deffacts.undefine()
+
+        with self.assertRaises(LookupError):
+            self.env.find_defined_facts('defined-facts')
+        with self.assertRaises(CLIPSError):
+            print(deffacts)
