@@ -13,14 +13,12 @@ CLIPS Python bindings
 
 Python CFFI_ bindings for the 'C' Language Integrated Production System (CLIPS_) 6.40
 
-
 Design principles
 -----------------
 
 The clipspy bindings aim to be a "pythonic" thin layer built on top of the CLIPS native C APIs. Most of the functions and the methods directly resolve to the CLIPS functions documented in the `Advanced Programming Guide`_.
 
 Python standard paradigms are preferred such as property getters and setters, generators and magic methods.
-
 
 Data types
 ----------
@@ -65,16 +63,13 @@ Python native types returned by functions defined within an Environment are mapp
 
 ** `ImpliedFact` and `TemplateFact` are `Fact` subclasses.
 
-
 Basic Data Abstractions
 -----------------------
-
 
 Facts
 +++++
 
 A `fact` is a list of atomic values that are either referenced positionally (ordered or implied facts) or by name (unordered or template facts).
-
 
 Ordered Facts
 *************
@@ -93,7 +88,6 @@ Ordered or implied facts represent information as a list of elements. As the ord
     # Ordered facts data can be accessed as list elements
     assert fact[0] == 1
     assert list(fact) == [1, 2, 3]
-
 
 Template Facts
 **************
@@ -134,7 +128,6 @@ Template facts are more flexible as they support features such as constraints fo
     for fact in env.facts():
         print(fact)
 
-
 Instances
 +++++++++
 
@@ -167,7 +160,6 @@ Objects are instantiations of specific classes. They support more features such 
     for instance in env.instances():
         print(instance)
 
-
 Evaluating CLIPS code
 ---------------------
 
@@ -195,7 +187,6 @@ CLIPS functions can also be called directly without the need of building languag
 
 .. note:: None of the above can be used to define CLIPS constructs. Use the `build` or `load` functions instead.
 
-
 Defining CLIPS constructs
 -------------------------
 
@@ -219,7 +210,6 @@ Rule definition example.
 
     for rule in env.rules():
         print(rule)
-
 
 Embedding Python
 ----------------
@@ -283,13 +273,14 @@ Example output.
 
     2019-02-10 20:36:26,669 - INFO - New fact asserted: <Fact-1>. A multifield: (1 2.0 three "four")
 
+Memory management and objects lifecycle
+---------------------------------------
 
-Python Objects lifecycle
-------------------------
+All clipspy objects are wrappers of CLIPS data structures.
 
-All clipspy objects are simple wrappers of CLIPS data structures. This means every object lifecycle is bound to the CLIPS data structure it refers to.
+Facts and Instances implement a simple reference counting mechanism. Therefore, they can be accessed even when retracted from the engine working memory. Nevertheless, retaining these objects beyond their normal lifecycle will add pressure to the engine internal memory.
 
-In most of the cases, deleting or undefining an object makes it unusable.
+All other constructs become unusable when deleted or undefined.
 
 Example:
 
@@ -315,7 +306,6 @@ If the previous example is pretty straightforward, there are more subtle scenari
     # this will cause an error
     for template in templates:
         print(template)
-
 
 Building from sources
 ---------------------
