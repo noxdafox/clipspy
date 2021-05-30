@@ -64,6 +64,6 @@ setup(
         "Programming Language :: Python :: Implementation :: PyPy",
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
-        "License :: OSI Approved :: BSD-3 License"
+        "License :: OSI Approved :: BSD License"
     ]
 )
