@@ -7,10 +7,10 @@ Python CFFI_ bindings for the 'C' Language Integrated Production System CLIPS_ 6
 :Documentation: https://clipspy.readthedocs.io
 :Download: https://pypi.python.org/pypi/clipspy
 
-|travis badge| |docs badge|
+|build badge| |docs badge|
 
-.. |travis badge| image:: https://travis-ci.org/noxdafox/clipspy.svg?branch=master
-   :target: https://travis-ci.org/noxdafox/clipspy
+.. |build badge| image:: https://github.com/noxdafox/clipspy/actions/workflows/action.yml/badge.svg
+   :target: https://github.com/noxdafox/pebble/actions/workflows/action.yml
    :alt: Build Status
 .. |docs badge| image:: https://readthedocs.org/projects/clipspy/badge/?version=latest
    :target: http://clipspy.readthedocs.io/en/latest/?badge=latest
