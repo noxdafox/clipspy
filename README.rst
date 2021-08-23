@@ -10,7 +10,7 @@ Python CFFI_ bindings for the 'C' Language Integrated Production System CLIPS_ 6
 |build badge| |docs badge|
 
 .. |build badge| image:: https://github.com/noxdafox/clipspy/actions/workflows/action.yml/badge.svg
-   :target: https://github.com/noxdafox/pebble/actions/workflows/action.yml
+   :target: https://github.com/noxdafox/clipspy/actions/workflows/action.yml
    :alt: Build Status
 .. |docs badge| image:: https://readthedocs.org/projects/clipspy/badge/?version=latest
    :target: http://clipspy.readthedocs.io/en/latest/?badge=latest
