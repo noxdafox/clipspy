@@ -47,9 +47,9 @@ install-clips: clips
 	install -d $(SHARED_LIBRARY_DIR)/
 	install -m 644 clips_source/libclips.so                                \
 	 	$(SHARED_LIBRARY_DIR)/libclips.so.$(CLIPS_VERSION)
-	ln -s $(SHARED_LIBRARY_DIR)/libclips.so.$(CLIPS_VERSION)	       \
+	ln -sf $(SHARED_LIBRARY_DIR)/libclips.so.$(CLIPS_VERSION)	       \
 	 	$(SHARED_LIBRARY_DIR)/libclips.so.6
-	ln -s $(SHARED_LIBRARY_DIR)/libclips.so.$(CLIPS_VERSION)	       \
+	ln -sf $(SHARED_LIBRARY_DIR)/libclips.so.$(CLIPS_VERSION)	       \
 	 	$(SHARED_LIBRARY_DIR)/libclips.so
 	-ldconfig -n -v $(SHARED_LIBRARY_DIR)
 
