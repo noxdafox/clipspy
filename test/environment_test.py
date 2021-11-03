@@ -104,8 +104,7 @@ class TestEnvironment(unittest.TestCase):
 
         with self.assertRaises(CLIPSError):
             self.env.eval('(python_error)')
-        self.assertEqual(str(self.env.error_state),
-                         "[PYCODEFUN1] Exception('BOOM!')")
+        self.assertTrue("[PYCODEFUN1]" in str(self.env.error_state))
 
         self.env.clear_error_state()
         self.assertIsNone(self.env.error_state)
