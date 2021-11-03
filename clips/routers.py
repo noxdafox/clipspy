@@ -111,6 +111,12 @@ class Router:
         if not lib.DeleteRouter(self._env, self._name.encode()):
             raise RuntimeError("Unable to delete router %s" % self._name)
 
+    def share_message(self, name: str, message: str):
+        """Share the captured message with other Routers."""
+        self.deactivate()
+        lib.WriteString(self._env, name.encode(), message.encode())
+        self.activate()
+
 
 class ErrorRouter(Router):
     """Router capturing error messages for CLIPSError exceptions."""
@@ -134,6 +140,7 @@ class ErrorRouter(Router):
 
     def write(self, name: str, message: str):
         self._last_message += message
+        self.share_message(name, message)
 
 
 class LoggingRouter(Router):
@@ -141,6 +148,8 @@ class LoggingRouter(Router):
 
     A helper Router to get Python standard logging facilities
     integrated with CLIPS.
+
+    It captures CLIPS output and re-directs it to Python logging library.
 
     """
 
