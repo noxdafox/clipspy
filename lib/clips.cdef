@@ -253,7 +253,9 @@ typedef struct clipsValue {
 } CLIPSValue;
 
 typedef struct udfContext {
-    void *context;
+   Environment *environment;
+   void *context;
+   ...;
 } UDFContext;
 
 typedef struct udfValue {
@@ -624,6 +626,8 @@ bool UDFNthArgument(UDFContext *, unsigned, unsigned, UDFValue *);
 bool UDFHasNextArgument(UDFContext *);
 void UDFThrowError(UDFContext *);
 void SetErrorValue(Environment *, TypeHeader *);
+void GetErrorFunction(Environment *, UDFContext *, UDFValue *);
+void ClearErrorValue(Environment *);
 int DefinePythonFunction(Environment *);
 extern "Python" static void python_function(Environment *, UDFContext *,
                                             UDFValue *);
