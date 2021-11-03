@@ -2,8 +2,8 @@ import os
 import unittest
 from tempfile import mkstemp
 
+from clips import CLIPSError
 from clips import Environment, Symbol, LoggingRouter, ImpliedFact, InstanceName
-
 
 DEFRULE_FACT = """
 (defrule fact-rule
@@ -38,6 +38,10 @@ def python_types():
     return None, True, False
 
 
+def python_error():
+    raise Exception("BOOM!")
+
+
 class TempFile:
     """Cross-platform temporary file."""
     name = None
@@ -60,6 +64,7 @@ class TestEnvironment(unittest.TestCase):
         self.env.define_function(python_function)
         self.env.define_function(python_function,
                                  name='python-function-renamed')
+        self.env.define_function(python_error)
         self.env.define_function(python_types)
         self.env.define_function(self.python_method)
         self.env.define_function(self.python_fact_method)
@@ -92,6 +97,18 @@ class TestEnvironment(unittest.TestCase):
         expected = (Symbol('nil'), Symbol('TRUE'), Symbol('FALSE'))
         ret = self.env.eval('(python_types)')
         self.assertEqual(ret, expected)
+
+    def test_eval_python_error(self):
+        """Errors in Python functions are correctly set."""
+        self.assertIsNone(self.env.error_state)
+
+        with self.assertRaises(CLIPSError):
+            self.env.eval('(python_error)')
+        self.assertEqual(str(self.env.error_state),
+                         "[PYCODEFUN1] Exception('BOOM!')")
+
+        self.env.clear_error_state()
+        self.assertIsNone(self.env.error_state)
 
     def test_eval_python_method(self):
         """Python method is evaluated correctly."""

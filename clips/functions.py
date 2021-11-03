@@ -37,6 +37,7 @@
 """
 
 import traceback
+from typing import Union
 
 import clips
 
@@ -347,6 +348,31 @@ class Functions:
     def __init__(self, env: ffi.CData):
         self._env = env
 
+    @property
+    def error_state(self) -> Union[None, CLIPSError]:
+        """Get the CLIPS environment error state.
+
+        Equivalent to the CLIPS (get-error) function.
+
+        """
+        value = clips.values.clips_udf_value(self._env)
+
+        lib.GetErrorFunction(self._env, ffi.NULL, value)
+        state = clips.values.python_value(self._env, value)
+
+        if isinstance(state, clips.Symbol):
+            return None
+        else:
+            return CLIPSError(self._env, message=state)
+
+    def clear_error_state(self):
+        """Clear the CLIPS environment error state.
+
+        Equivalent to the CLIPS (clear-error) function.
+
+        """
+        lib.ClearErrorValue(self._env)
+
     def call(self, function: str, *arguments) -> type:
         """Call the CLIPS function with the given arguments."""
         value = clips.values.clips_value(self._env)
@@ -439,7 +465,11 @@ def python_function(env: ffi.CData, context: ffi.CData, output: ffi.CData):
     try:
         ret = environment_data(env, 'user_functions')[funcname](*arguments)
     except Exception as error:
-        clips.values.clips_udf_value(env, traceback.format_exc(), value)
+        message = "[PYCODEFUN1] %r" % error
+        string = "\n".join((message, traceback.format_exc()))
+
+        lib.WriteString(env, 'stdwrn'.encode(), string.encode())
+        clips.values.clips_udf_value(env, message, value)
         lib.SetErrorValue(env, value.header)
         lib.UDFThrowError(context)
     else:
