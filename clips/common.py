@@ -198,10 +198,10 @@ EnvData = namedtuple('EnvData', ('builders',
                                  'modifiers',
                                  'routers',
                                  'user_functions'))
-EnvBuilders = namedtuple('EnvData', ('fact',
-                                     'instance',
-                                     'function',
-                                     'string',
-                                     'multifield'))
-EnvModifiers = namedtuple('EnvData', ('fact',
-                                      'instance'))
+EnvBuilders = namedtuple('EnvBuilders', ('fact',
+                                         'instance',
+                                         'function',
+                                         'string',
+                                         'multifield'))
+EnvModifiers = namedtuple('EnvModifiers', ('fact',
+                                           'instance'))
