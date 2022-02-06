@@ -38,6 +38,10 @@ def python_types():
     return None, True, False
 
 
+def python_objects(obj):
+    return obj
+
+
 def python_error():
     raise Exception("BOOM!")
 
@@ -56,6 +60,11 @@ class TempFile:
         os.remove(self.name)
 
 
+class ObjectTest:
+    def __init__(self, value):
+        self.value = value
+
+
 class TestEnvironment(unittest.TestCase):
     def setUp(self):
         self.values = []
@@ -66,6 +75,7 @@ class TestEnvironment(unittest.TestCase):
                                  name='python-function-renamed')
         self.env.define_function(python_error)
         self.env.define_function(python_types)
+        self.env.define_function(python_objects)
         self.env.define_function(self.python_method)
         self.env.define_function(self.python_fact_method)
         self.env.build(DEFCLASS)
@@ -117,6 +127,14 @@ class TestEnvironment(unittest.TestCase):
 
         self.assertEqual(ret, Symbol('nil'))
         self.assertEqual(self.values, expected)
+
+    def test_call_python_object(self):
+        """Python objects are correctly marshalled."""
+        test_object = ObjectTest(42)
+
+        ret = self.env.call('python_objects', test_object)
+
+        self.assertEqual(ret, test_object)
 
     def test_rule_python_fact(self):
         """Facts are forwarded to Python """
