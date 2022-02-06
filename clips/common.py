@@ -154,7 +154,9 @@ def initialize_environment_data(env: ffi.CData) -> 'EnvData':
         raise CLIPSError(env, code=lib.FMError(env))
     modifiers = EnvModifiers(fact, instance)
 
-    ENVIRONMENT_DATA[env] = EnvData(builders, modifiers, {}, {})
+    functions = UserFunctions({}, {})
+
+    ENVIRONMENT_DATA[env] = EnvData(builders, modifiers, {}, functions)
 
     lib.DefinePythonFunction(env)
 
@@ -205,3 +207,5 @@ EnvBuilders = namedtuple('EnvBuilders', ('fact',
                                          'multifield'))
 EnvModifiers = namedtuple('EnvModifiers', ('fact',
                                            'instance'))
+UserFunctions = namedtuple('UserFunctions', ('functions',
+                                             'external_addresses'))

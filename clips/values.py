@@ -60,7 +60,8 @@ def clips_value(env: ffi.CData, value: type = ffi.NULL) -> ffi.CData:
     val = ffi.new("CLIPSValue *")
 
     if value is not ffi.NULL:
-        val.value = CLIPS_VALUES.get(type(value))(env, value)
+        constructor = CLIPS_VALUES.get(type(value), clips_external_address)
+        val.value = constructor(env, value)
 
     return val
 
@@ -75,7 +76,8 @@ def clips_udf_value(env: ffi.CData, value: type = ffi.NULL,
     if udf_value is ffi.NULL:
         return ffi.new("UDFValue *")
 
-    udf_value.value = CLIPS_VALUES.get(type(value))(env, value)
+    constructor = CLIPS_VALUES.get(type(value), clips_external_address)
+    udf_value.value = constructor(env, value)
 
     return udf_value
 
@@ -94,6 +96,28 @@ def multifield_value(env: ffi.CData, values: (list, tuple)) -> ffi.CData:
     return lib.MBCreate(builder)
 
 
+def clips_external_address(env: ffi.CData, value: type) -> ffi.CData:
+    """Convert a Python object into a CLIPSExternalAddress."""
+    handle = ffi.new_handle(value)
+
+    # Hold reference to CData handle
+    user_functions = common.environment_data(env, 'user_functions')
+    user_functions.external_addresses[value] = handle
+
+    return lib.CreateCExternalAddress(env, handle)
+
+
+def python_external_address(env: ffi.CData, value: ffi.CData) -> type:
+    """Convert a CLIPSExternalAddress into a Python object."""
+    obj = ffi.from_handle(value.externalAddressValue.contents)
+
+    # Remove reference to CData handle
+    user_functions = common.environment_data(env, 'user_functions')
+    del user_functions.external_addresses[obj]
+
+    return obj
+
+
 PYTHON_VALUES = {common.CLIPSType.FLOAT:
                  lambda e, v: float(v.floatValue.contents),
                  common.CLIPSType.INTEGER:
@@ -107,8 +131,6 @@ PYTHON_VALUES = {common.CLIPSType.FLOAT:
                  lambda e, v: tuple(
                      python_value(e, v.multifieldValue.contents + i)
                      for i in range(v.multifieldValue.length)),
-                 common.CLIPSType.EXTERNAL_ADDRESS:
-                 lambda e, v: v.externalAddressValue.contents,
                  common.CLIPSType.FACT_ADDRESS:
                  lambda e, v: new_fact(e, v.factValue),
                  common.CLIPSType.INSTANCE_ADDRESS:
@@ -116,6 +138,7 @@ PYTHON_VALUES = {common.CLIPSType.FLOAT:
                  common.CLIPSType.INSTANCE_NAME:
                  lambda e, v: InstanceName(
                      ffi.string(v.lexemeValue.contents).decode()),
+                 common.CLIPSType.EXTERNAL_ADDRESS: python_external_address,
                  common.CLIPSType.VOID: lambda e, v: None}
 
 

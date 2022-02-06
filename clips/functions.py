@@ -437,7 +437,8 @@ class Functions:
         """
         name = name if name is not None else function.__name__
 
-        environment_data(self._env, 'user_functions')[name] = function
+        user_functions = environment_data(self._env, 'user_functions')
+        user_functions.functions[name] = function
 
         ret = lib.Build(self._env, DEFFUNCTION.format(name).encode())
         if ret != lib.BE_NO_ERROR:
@@ -463,7 +464,8 @@ def python_function(env: ffi.CData, context: ffi.CData, output: ffi.CData):
             return
 
     try:
-        ret = environment_data(env, 'user_functions')[funcname](*arguments)
+        user_functions = environment_data(env, 'user_functions')
+        ret = user_functions.functions[funcname](*arguments)
     except Exception as error:
         message = "[PYCODEFUN1] %r" % error
         string = "\n".join((message, traceback.format_exc()))
