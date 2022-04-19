@@ -18,7 +18,7 @@ clips_source:
 	unzip -jo clips.zip -d clips_source
 
 ifeq ($(PLATFORM),Darwin) # macOS
-	TARGET_ARCH = $(shell uname -m)
+	TARGET_ARCH ?= $(shell uname -m)
 	LDLIBS = -lm
 	ifneq "$(wildcard /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib)" ""
 		LDLIBS += -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
