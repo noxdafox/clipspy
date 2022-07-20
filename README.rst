@@ -69,13 +69,19 @@ Example
       (slot birthdate (type SYMBOL)))
     """
 
+    DEFRULE_STRING = """
+    (defrule hello-world
+      "Greet a new person."
+      (person (name ?name) (surname ?surname))
+      =>
+      (println "Hello " ?name " " ?surname))
+    """
+
     environment = clips.Environment()
 
-    # load constructs into the environment from a file
-    environment.load('constructs.clp')
-
-    # define a fact template
+    # define constructs
     environment.build(DEFTEMPLATE_STRING)
+    environment.build(DEFRULE_STRING)
 
     # retrieve the fact template
     template = environment.find_template('person')
