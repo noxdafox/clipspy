@@ -1,3 +1,4 @@
+# vim: tabstop=8
 PYTHON			?= python
 CLIPS_VERSION		?= 6.40
 CLIPS_SOURCE_URL	?= "https://sourceforge.net/projects/clipsrules/files/CLIPS/6.40/clips_core_source_640.zip"
@@ -17,11 +18,16 @@ clips_source:
 	unzip -jo clips.zip -d clips_source
 
 ifeq ($(PLATFORM),Darwin) # macOS
+	TARGET_ARCH ?= $(shell uname -m)
+	LDLIBS = -lm
+	ifneq "$(wildcard /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib)" ""
+		LDLIBS += -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
+	endif
 clips: clips_source
 	$(MAKE) -f $(MAKEFILE_NAME) -C clips_source                            \
 		CFLAGS="-std=c99 -O3 -fno-strict-aliasing -fPIC"               \
-		LDLIBS="-lm"
-	ld clips_source/*.o -lm -dylib -arch x86_64                            \
+		LDLIBS="$(LDLIBS)"
+	ld clips_source/*.o $(LDLIBS) -dylib -arch $(TARGET_ARCH)              \
 		-o clips_source/libclips.so
 else
 clips: clips_source
