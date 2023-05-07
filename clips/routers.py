@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2021, Matteo Cafasso
+# Copyright (c) 2016-2023, Matteo Cafasso
 # All rights reserved.
 
 # Redistribution and use in source and binary forms, with or without
