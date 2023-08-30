@@ -1,7 +1,7 @@
 name: CLIPSPy build job
 on: [push, pull_request]
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -22,3 +22,18 @@ jobs:
       - name: Run tests
         run: |
           make test
+  build-manylinux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build Manylinux Container
+        run: |
+          docker build -t clipspy-build-wheels:latest -f manylinux/Dockerfile .
+      - name: Build Manylinux packages
+        run: |
+          docker run --rm -v `pwd`/manylinux/wheelhouse:/io/wheelhouse clipspy-build-wheels:latest
+      - name: Store build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: manylinux-build
+          path: manylinux/wheelhouse
