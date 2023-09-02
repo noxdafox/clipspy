@@ -1,10 +1,10 @@
 # vim: tabstop=8
-PYTHON             = python
-CLIPS_VERSION      = 6.40
-CLIPS_SOURCE_URL   = "https://sourceforge.net/projects/clipsrules/files/CLIPS/6.4.1/clips_core_source_641.zip"
-MAKEFILE_NAME	   = makefile
-SHARED_INCLUDE_DIR = /usr/local/include
-SHARED_LIBRARY_DIR = /usr/local/lib
+PYTHON			?= python
+CLIPS_VERSION		?= 6.40
+CLIPS_SOURCE_URL	?= "https://sourceforge.net/projects/clipsrules/files/CLIPS/6.4.1/clips_core_source_641.zip"
+MAKEFILE_NAME		?= makefile
+SHARED_INCLUDE_DIR	?= /usr/local/include
+SHARED_LIBRARY_DIR	?= /usr/local/lib
 
 # platform detection
 PLATFORM = $(shell uname -s)
