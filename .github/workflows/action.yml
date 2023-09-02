@@ -1,39 +1,57 @@
 name: CLIPSPy build job
 on: [push, pull_request]
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  # test:
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: Set up Python ${{ matrix.python-version }}
+  #       uses: actions/setup-python@v2
+  #       with:
+  #         python-version: ${{ matrix.python-version }}
+  #     - name: Install dependencies
+  #       run: |
+  #         python -m pip install --upgrade pip
+  #         pip install --upgrade cffi pytest
+  #     - name: Build CLIPSPy
+  #       run: |
+  #         make
+  #     - name: Run tests
+  #       run: |
+  #         make test
+  # build-linux:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: Build Manylinux Container
+  #       run: |
+  #         docker build -t clipspy-build-wheels:latest -f manylinux/Dockerfile .
+  #     - name: Build Manylinux packages
+  #       run: |
+  #         docker run --rm -v `pwd`/manylinux/wheelhouse:/io/wheelhouse clipspy-build-wheels:latest
+  #     - name: Store build artifacts
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: manylinux-build
+  #         path: manylinux/wheelhouse
+  build-windows:
+    runs-on: windows-latest
     strategy:
       matrix:
         python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
+      # Install nmake
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Build CLIPS
         run: |
-          python -m pip install --upgrade pip
-          pip install --upgrade cffi pytest
-      - name: Build CLIPSPy
+          nmake clips
+      - name: Build Python packages
         run: |
-          make
-      - name: Run tests
+          python setup.py build_ext --include-dirs= --library-dirs
+      - name: Build Python wheels
         run: |
-          make test
-  build-manylinux:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Build Manylinux Container
-        run: |
-          docker build -t clipspy-build-wheels:latest -f manylinux/Dockerfile .
-      - name: Build Manylinux packages
-        run: |
-          docker run --rm -v `pwd`/manylinux/wheelhouse:/io/wheelhouse clipspy-build-wheels:latest
-      - name: Store build artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: manylinux-build
-          path: manylinux/wheelhouse
+          python setup.py sdist bdist_wheel
