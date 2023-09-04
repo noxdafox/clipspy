@@ -1,0 +1,24 @@
+# vim: tabstop=8
+PYTHON             = python
+CLIPS_VERSION      = 6.41
+CLIPS_SOURCE_URL   = "https://sourceforge.net/projects/clipsrules/files/CLIPS/6.4.1/clips_core_source_641.zip"
+
+.PHONY: clips_source clips clipspy
+
+all: clips_source clips clipspy
+
+clips_source:
+    curl --output clips.zip --location --url $(CLIPS_SOURCE_URL)
+    mkdir clips_source
+    tar -xf clips.zip -C clips_source --strip-components=1
+
+clips: clips_source
+    (cd clips_source/core/ && nmake /F makefile.win)
+
+clipspy: clips
+    python setup.py build_ext --include-dirs=clips_source/core/ --library-dirs=clips_source/core/
+    python setup.py sdist bdist_wheel
+
+clean:
+    -del clips.zip
+    -rd /s /q clips_source build dist clipspy.egg-info
