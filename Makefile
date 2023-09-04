@@ -5,6 +5,8 @@ CLIPS_SOURCE_URL	?= "https://sourceforge.net/projects/clipsrules/files/CLIPS/6.4
 MAKEFILE_NAME		?= makefile
 SHARED_INCLUDE_DIR	?= /usr/local/include
 SHARED_LIBRARY_DIR	?= /usr/local/lib
+TARGET_ARCH		?= $(shell uname -m)
+LDLIBS			?= -lm
 
 # platform detection
 PLATFORM = $(shell uname -s)
@@ -18,8 +20,6 @@ clips_source:
 	unzip -jo clips.zip -d clips_source
 
 ifeq ($(PLATFORM),Darwin) # macOS
-	TARGET_ARCH = $(shell uname -m)
-	LDLIBS = -lm
 	ifneq "$(wildcard /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib)" ""
 		LDLIBS += -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
 	endif
