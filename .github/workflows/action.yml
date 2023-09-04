@@ -37,26 +37,54 @@ jobs:
   #       with:
   #         name: manylinux-build
   #         path: manylinux/wheelhouse
-  build-windows:
-    runs-on: windows-latest
+  # build-windows:
+  #   runs-on: windows-latest
+  #   strategy:
+  #     matrix:
+  #       python-version: ['3.8', '3.9', '3.10', '3.11']
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     # Install nmake
+  #     - uses: ilammy/msvc-dev-cmd@v1
+  #     - name: Set up Python ${{ matrix.python-version }}
+  #       uses: actions/setup-python@v2
+  #       with:
+  #         python-version: ${{ matrix.python-version }}
+  #     - name: Build CLIPSPy
+  #       run: |
+  #         python -m pip install --upgrade pip
+  #         pip install --upgrade cffi wheel
+  #         nmake /F Makefile.win
+  #     - name: Store build artifacts
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: windows-build
+  #         path: dist/
+  build-macos:
+    runs-on: macos-latest
     strategy:
       matrix:
         python-version: ['3.8', '3.9', '3.10', '3.11']
     steps:
       - uses: actions/checkout@v2
-      # Install nmake
-      - uses: ilammy/msvc-dev-cmd@v1
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Build CLIPSPy
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install --upgrade cffi wheel
-          nmake /F Makefile.win
+          pip install --upgrade cffi wheel delocate
+      - name: Build and install CLIPSPy
+        run: |
+          make install-clips
+      - name: Repair wheels
+        run: |
+          for whl in dist/*.whl; do
+            delocate-wheel -v "$whl"
+          done
       - name: Store build artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: windows-build
+          name: macos-build
           path: dist/

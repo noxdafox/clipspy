@@ -38,7 +38,8 @@ clips: clips_source
 endif
 
 clipspy: clips
-	$(PYTHON) setup.py build_ext
+	$(PYTHON) setup.py build_ext --include-dirs=clips_source/ --library-dirs=clips_source/
+	$(PYTHON) setup.py sdist bdist_wheel
 
 test: clipspy
 	cp build/lib.*/clips/_clips*.so clips
