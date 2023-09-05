@@ -6,7 +6,8 @@ MAKEFILE_NAME		?= makefile
 SHARED_INCLUDE_DIR	?= /usr/local/include
 SHARED_LIBRARY_DIR	?= /usr/local/lib
 TARGET_ARCH		?= $(shell uname -m)
-OS_LDLIBS_PATH		?= /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
+LINUX_LDLIBS		?= -lm -lrt
+OSX_LDLIBS		?= -lm -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
 
 # platform detection
 PLATFORM = $(shell uname -s)
@@ -23,14 +24,14 @@ ifeq ($(PLATFORM),Darwin) # macOS
 clips: clips_source
 	$(MAKE) -f $(MAKEFILE_NAME) -C clips_source				\
 		CFLAGS="-std=c99 -O3 -fno-strict-aliasing -fPIC"		\
-		LDLIBS="-lm -L$(OS_LDLIBS_PATH)"
-	ld clips_source/*.o -dylib -lm -L$(OS_LDLIBS_PATH) -arch $(TARGET_ARCH)	\
+		LDLIBS="$(OSX_LDLIBS)"
+	ld clips_source/*.o -dylib $(OSX_LDLIBS) -arch $(TARGET_ARCH)		\
 		-o clips_source/libclips.so
 else
 clips: clips_source
 	$(MAKE) -f $(MAKEFILE_NAME) -C clips_source				\
 		CFLAGS="-std=c99 -O3 -fno-strict-aliasing -fPIC"		\
-		LDLIBS="-lm -lrt"
+		LDLIBS="$(LINUX_LDLIBS)"
 	ld -G clips_source/*.o -o clips_source/libclips.so
 endif
 

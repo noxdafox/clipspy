@@ -81,6 +81,7 @@ jobs:
       - name: Repair wheels
         run: |
           for whl in dist/*.whl; do
+            echo $whl
             delocate-wheel -v "$whl"
           done
       - name: Store build artifacts
