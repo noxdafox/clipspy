@@ -80,9 +80,8 @@ jobs:
           make install-clips
       - name: Repair wheels
         run: |
-          for whl in dist/*.whl; do
-            echo $whl
-            delocate-wheel -v "$whl"
+          for whl in $(ls dist | grep .whl); do
+            delocate-wheel -v "dist/$whl"
           done
       - name: Store build artifacts
         uses: actions/upload-artifact@v3
