@@ -24,7 +24,7 @@ clips: clips_source
 	$(MAKE) -f $(MAKEFILE_NAME) -C clips_source				\
 		CFLAGS="-std=c99 -O3 -fno-strict-aliasing -fPIC"		\
 		LDLIBS="-lm -L$(OS_LDLIBS_PATH)"
-	ld clips_source/*.o -dylib -L$(OS_LDLIBS_PATH)				\
+	ld clips_source/*.o -dylib -lm -L$(OS_LDLIBS_PATH) -arch $(TARGET_ARCH)	\
 		-o clips_source/libclips.so
 else
 clips: clips_source
