@@ -321,7 +321,7 @@ The following tools are required to build the sources.
 
  - gcc
  - make
- - wget
+ - curl
  - unzip
  - python
  - python-cffi

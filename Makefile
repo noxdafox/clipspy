@@ -17,7 +17,7 @@ PLATFORM = $(shell uname -s)
 all: clips_source clips clipspy
 
 clips_source:
-	wget -O clips.zip $(CLIPS_SOURCE_URL)
+	curl --output clips.zip --location --url $(CLIPS_SOURCE_URL)
 	unzip -jo clips.zip -d clips_source
 
 ifeq ($(PLATFORM),Darwin) # macOS
