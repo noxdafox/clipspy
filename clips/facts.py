@@ -269,12 +269,12 @@ class Template:
     @property
     def watch(self) -> bool:
         """Whether or not the Template is being watched."""
-        return lib.GetDeftemplateWatch(self._ptr())
+        return lib.DeftemplateGetWatch(self._ptr())
 
     @watch.setter
     def watch(self, flag: bool):
         """Whether or not the Template is being watched."""
-        lib.EnvSetDeftemplateWatch(self._ptr(), flag)
+        lib.DeftemplateSetWatch(self._ptr(), flag)
 
     def facts(self) -> iter:
         """Iterate over the asserted Facts belonging to this Template."""

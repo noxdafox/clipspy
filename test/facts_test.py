@@ -147,6 +147,9 @@ class TestFacts(unittest.TestCase):
         fact = self.env.assert_string('(implied-fact 1 2.3 "4" five)')
         template = fact.template
 
+        self.assertEqual(template.watch, False)
+        template.watch = True
+        self.assertEqual(template.watch, True)
         self.assertTrue(template.implied)
         self.assertEqual(template.name, 'implied-fact')
         self.assertEqual(template.module.name, 'MAIN')
@@ -161,6 +164,9 @@ class TestFacts(unittest.TestCase):
         """TemplateFact template properties."""
         template = self.env.find_template('template-fact')
 
+        self.assertEqual(template.watch, False)
+        template.watch = True
+        self.assertEqual(template.watch, True)
         self.assertEqual(template.name, 'template-fact')
         self.assertEqual(template.module.name, 'MAIN')
         self.assertEqual(len(tuple(template.slots)), 5)
