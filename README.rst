@@ -24,15 +24,17 @@ CLIPSPy brings CLIPS capabilities within the Python ecosystem.
 Installation
 ------------
 
-Linux
-+++++
+Linux and MAC
++++++++++++++
 
-On Linux, CLIPSPy is packaged for `x86_64` architectures as a wheel according to PEP-513_ guidelines.
+On Linux and MAC, CLIPSPy is packaged for `x86_64` architecture as a wheel according to PEP-513_ guidelines.
 Most of the distributions should be supported.
 
 .. code:: bash
 
-    $ [sudo] pip install clipspy
+    $ pip install clipspy
+
+Apple M architecture is not yet supported.
 
 Windows
 +++++++
@@ -46,12 +48,12 @@ CLIPSPy comes as a wheel for most of the Python versions and architectures.
 Building from sources
 +++++++++++++++++++++
 
-The provided Makefile takes care of retrieving the CLIPS source code and compiling the Python bindings together with it.
+The provided Makefiles take care of retrieving the CLIPS source code and compiling the Python bindings together with it.
 
 .. code:: bash
 
     $ make
-    $ sudo make install
+    # make install
 
 Please check the documentation_ for more information regarding building CLIPSPy from sources.
 
