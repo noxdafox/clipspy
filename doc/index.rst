@@ -11,7 +11,7 @@ CLIPS Python bindings
    :Release: |release|
    :Date: |today|
 
-Python CFFI_ bindings for the 'C' Language Integrated Production System (CLIPS_) 6.40
+Python CFFI_ bindings for the 'C' Language Integrated Production System (CLIPS_) 6.41
 
 Design principles
 -----------------
