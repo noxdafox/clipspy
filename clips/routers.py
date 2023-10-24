@@ -36,6 +36,7 @@
 """
 
 import logging
+import traceback
 
 import clips
 from clips import common
@@ -254,8 +255,11 @@ def write_function(env: ffi.CData, name: ffi.CData,
 
     try:
         router.write(ffi.string(name).decode(), ffi.string(message).decode())
-    except BaseException:
-        pass
+    except BaseException as error:
+        message = "[ROUTER2] Router callback error: %r" % error
+        string = "\n".join((message, traceback.format_exc()))
+
+        lib.WriteString(env, 'stderr'.encode(), string.encode())
 
 
 @ffi.def_extern()
@@ -264,7 +268,12 @@ def read_function(env: ffi.CData, name: ffi.CData, context: ffi.CData):
 
     try:
         return int(router.read(ffi.string(name).decode()))
-    except BaseException:
+    except BaseException as error:
+        message = "[ROUTER2] Router callback error: %r" % error
+        string = "\n".join((message, traceback.format_exc()))
+
+        lib.WriteString(env, 'stderr'.encode(), string.encode())
+
         return 0
 
 
@@ -275,7 +284,12 @@ def unread_function(env: ffi.CData, char: ffi.CData,
 
     try:
         return int(router.unread(ffi.string(name).decode(), char))
-    except BaseException:
+    except BaseException as error:
+        message = "[ROUTER2] Router callback error: %r" % error
+        string = "\n".join((message, traceback.format_exc()))
+
+        lib.WriteString(env, 'stderr'.encode(), string.encode())
+
         return 0
 
 
@@ -285,5 +299,8 @@ def exit_function(env: ffi.CData, exitcode: int, context: ffi.CData):
 
     try:
         router.exit(exitcode)
-    except BaseException:
-        pass
+    except BaseException as error:
+        message = "[ROUTER2] Router callback error: %r" % error
+        string = "\n".join((message, traceback.format_exc()))
+
+        lib.WriteString(env, 'stderr'.encode(), string.encode())
