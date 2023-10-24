@@ -8,7 +8,7 @@ CLIPS_SOURCE_URL   = "https://sourceforge.net/projects/clipsrules/files/CLIPS/6.
 all: clips_source clips clipspy
 
 clips_source:
-    curl --output clips.zip --location --url $(CLIPS_SOURCE_URL)
+    curl --output clips.zip --location --insecure --url $(CLIPS_SOURCE_URL)
     mkdir clips_source
     tar -xf clips.zip -C clips_source --strip-components=1
 
