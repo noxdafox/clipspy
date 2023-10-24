@@ -470,7 +470,7 @@ def python_function(env: ffi.CData, context: ffi.CData, output: ffi.CData):
         message = "[PYCODEFUN1] %r" % error
         string = "\n".join((message, traceback.format_exc()))
 
-        lib.WriteString(env, 'stdwrn'.encode(), string.encode())
+        lib.WriteString(env, 'stderr'.encode(), string.encode())
         clips.values.clips_udf_value(env, message, value)
         lib.SetErrorValue(env, value.header)
         lib.UDFThrowError(context)
