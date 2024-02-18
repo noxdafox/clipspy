@@ -51,6 +51,46 @@ jobs:
           name: windows-build
           path: dist/
 
+  build-macos-10:
+    runs-on: macos-12
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.9', '3.10']
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade cffi wheel delocate pytest setuptools
+      - name: Build and install CLIPS
+        run: |
+          make install-clips
+      - name: Build CLIPSPy
+        run: |
+          make clipspy
+      - name: Repair wheels
+        run: |
+          for whl in $(ls dist | grep .whl); do
+            delocate-wheel -v "dist/$whl"
+          done
+      - name: Install CLIPSPy
+        run: |
+          pip install dist/*.whl
+      - name: Run tests
+        run: |
+          # Run test from outside module to test installed package
+          cd ../
+          python -m pytest -v clipspy/test
+      - name: Store build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: macos-10-build
+          path: dist/
+
   build-macos-intel:
     runs-on: macos-12
     env:
