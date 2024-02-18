@@ -52,6 +52,8 @@ jobs:
           path: dist/
 
   build-macos-intel:
+    # Installed Python is 'universal2', this leads to packages
+    # being mistakenly built as 'universal2' instead of 'x86_64'.
     runs-on: macos-12
     env:
       ARCHFLAGS: "-arch x86_64"
@@ -97,6 +99,12 @@ jobs:
           path: dist/
 
   build-macos-arm:
+    # On MACOS 14, user 'runner' is not part of wheel group.
+    # Hence, we need to use sudo everywhere.
+    # Moreover, installed Python is 'universal2', this leads to packages
+    # being mistakenly built as 'universal2' instead of 'arm64'.
+    # This confuses the heck out of 'delocate-wheel' which we need to patch
+    # to make it work.
     runs-on: macos-14
     env:
       ARCHFLAGS: "-arch arm64"
@@ -144,6 +152,7 @@ jobs:
           path: dist/
 
   build-macos-universal:
+    # Merge MACOS 'x86_64' and 'arm64' into 'universal2' for most recent versions of Python.
     needs: [build-macos-intel, build-macos-arm]
     runs-on: macos-12
     steps:
