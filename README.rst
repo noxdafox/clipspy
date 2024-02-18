@@ -24,17 +24,24 @@ CLIPSPy brings CLIPS capabilities within the Python ecosystem.
 Installation
 ------------
 
-Linux and MAC
-+++++++++++++
+Linux
++++++
 
-On Linux and MAC, CLIPSPy is packaged for `x86_64` architecture as a wheel according to PEP-513_ guidelines.
+On Linux CLIPSPy is packaged for `x86_64` architecture as a wheel according to PEP-513_ guidelines.
 Most of the distributions should be supported.
 
 .. code:: bash
 
     $ pip install clipspy
 
-Apple M architecture is not yet supported.
+MacOsx
+++++++
+
+Apple Silicon is supported for Python versions greater than 3.11.
+
+.. code:: bash
+
+    $ pip install clipspy
 
 Windows
 +++++++
