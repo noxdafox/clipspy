@@ -29,7 +29,7 @@
 
 
 __author__ = 'Matteo Cafasso'
-__version__ = '1.0.2'
+__version__ = '1.0.3'
 __license__ = 'BSD-3'
 
 
