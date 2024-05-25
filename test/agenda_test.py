@@ -75,6 +75,7 @@ class TestAgenda(unittest.TestCase):
 
         fact_names = (f.template.name for f in self.env.facts())
         self.assertTrue('rule-fired' in fact_names)
+        self.assertEqual(self.env.focus, None)
 
     def test_agenda_activation_order(self):
         """Agenda activations order change if salience or strategy change."""
