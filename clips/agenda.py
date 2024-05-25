@@ -276,9 +276,13 @@ class Agenda:
         Equivalent to the CLIPS (get-focus) function.
 
         """
-        name = ffi.string(lib.DefmoduleName(lib.GetFocus(self._env))).decode()
+        current_focus = lib.GetFocus(self._env)
+        if current_focus != ffi.NULL:
+            name = ffi.string(lib.DefmoduleName(current_focus)).decode()
 
-        return Module(self._env, name)
+            return Module(self._env, name)
+
+        return None
 
     @focus.setter
     def focus(self, module: Module):
