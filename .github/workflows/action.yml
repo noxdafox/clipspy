@@ -180,8 +180,8 @@ jobs:
         run: |
           mkdir -p dist
           # Can't understand why globbing does not work in here
-          delocate-fuse artifacts/clipspy-1.0.3-cp311-cp311-macosx_11_0_arm64.whl artifacts/clipspy-1.0.3-cp311-cp311-macosx_11_0_x86_64.whl -w dist/
-          delocate-fuse artifacts/clipspy-1.0.3-cp312-cp312-macosx_11_0_arm64.whl artifacts/clipspy-1.0.3-cp312-cp312-macosx_11_0_x86_64.whl -w dist/
+          delocate-fuse artifacts/clipspy-1.0.4-cp311-cp311-macosx_11_0_arm64.whl artifacts/clipspy-1.0.4-cp311-cp311-macosx_11_0_x86_64.whl -w dist/
+          delocate-fuse artifacts/clipspy-1.0.4-cp312-cp312-macosx_11_0_arm64.whl artifacts/clipspy-1.0.4-cp312-cp312-macosx_11_0_x86_64.whl -w dist/
           rename "s/arm64/universal2/" dist/*.whl
       - name: Store build artifacts
         uses: actions/upload-artifact@v3
