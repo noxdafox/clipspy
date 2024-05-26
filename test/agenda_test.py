@@ -71,6 +71,7 @@ class TestAgenda(unittest.TestCase):
         """Agenda rules are fired on run."""
         self.env.assert_string('(implied-fact implied-value)')
 
+        self.assertEqual(self.env.focus, self.env.current_module)
         self.env.run()
         self.assertEqual(self.env.focus, None)
 
