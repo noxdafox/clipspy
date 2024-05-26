@@ -39,7 +39,7 @@ jobs:
           nmake /F Makefile.win
       - name: Install CLIPSPy
         run: |
-          pip install --find-links=dist clipspy
+          pip install clipspy --no-index --find-links dist
       - name: Run tests
         run: |
           # Run test from outside module to test installed package
