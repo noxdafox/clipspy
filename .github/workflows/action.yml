@@ -156,11 +156,11 @@ jobs:
     needs: [build-macos-intel, build-macos-arm]
     runs-on: macos-12
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4.1.7
         with:
           name: macos-intel-build
           path: artifacts/
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4.1.7
         with:
           name: macos-arm-build
           path: artifacts/
