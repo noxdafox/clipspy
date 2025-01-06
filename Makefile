@@ -57,7 +57,9 @@ install-clips: clips
 	 	$(SHARED_LIBRARY_DIR)/libclips.so.6
 	ln -sf $(SHARED_LIBRARY_DIR)/libclips.so.$(CLIPS_VERSION)		\
 	 	$(SHARED_LIBRARY_DIR)/libclips.so
+ifneq ($(PLATFORM),Darwin) # macOS does not have ldconfig
 	-ldconfig -n -v $(SHARED_LIBRARY_DIR)
+endif
 
 install: clipspy install-clips
 	$(PYTHON) setup.py install
