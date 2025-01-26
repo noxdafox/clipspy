@@ -52,15 +52,19 @@ jobs:
           path: dist/
 
   build-macos-intel:
-    # Installed Python is 'universal2', this leads to packages
+    # On MACOS 13, user 'runner' is not part of wheel group.
+    # Hence, we need to use sudo everywhere.
+    # Moreover, installed Python is 'universal2', this leads to packages
     # being mistakenly built as 'universal2' instead of 'x86_64'.
-    runs-on: macos-12
+    # This confuses the heck out of 'delocate-wheel' which we need to patch
+    # to make it work.
+    runs-on: macos-13
     env:
       ARCHFLAGS: "-arch x86_64"
       MACOSX_DEPLOYMENT_TARGET: "11.0"
     strategy:
       matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.10', '3.11', '3.12', '3.13']
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
@@ -73,17 +77,19 @@ jobs:
           pip install --upgrade cffi wheel delocate pytest setuptools
       - name: Build and install CLIPS
         run: |
-          make install-clips
+          make clips
+          sudo make install-clips
       - name: Build CLIPSPy
         run: |
           export PY_PLATFORM=$(python -c "import sysconfig; print('%s' % sysconfig.get_platform());")
           export _PYTHON_HOST_PLATFORM="${PY_PLATFORM/universal2/x86_64}"
-          make clipspy
+          sudo --preserve-env make clipspy
       - name: Repair wheels
         run: |
-          for whl in $(ls dist | grep .whl); do
-            delocate-wheel -v "dist/$whl"
-          done
+          # This is a shortcut to have a successful delocate-wheel. Credits: @alexsavulescu
+          # See: https://github.com/matthew-brett/delocate/issues/153
+          python -c "import os,delocate; print(os.path.join(os.path.dirname(delocate.__file__), 'tools.py'));quit()"  | xargs -I{} sed -i."" "s/first, /input.pop('x86_64',None); first, /g" {}
+          sudo delocate-wheel -v dist/*.whl
       - name: Install CLIPSPy
         run: |
           pip install dist/*.whl
@@ -111,7 +117,7 @@ jobs:
       MACOSX_DEPLOYMENT_TARGET: "11.0"
     strategy:
       matrix:
-        python-version: ['3.11', '3.12', '3.13']
+        python-version: ['3.10', '3.11', '3.12', '3.13']
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
@@ -154,7 +160,7 @@ jobs:
   build-macos-universal:
     # Merge MACOS 'x86_64' and 'arm64' into 'universal2' for most recent versions of Python.
     needs: [build-macos-intel, build-macos-arm]
-    runs-on: macos-12
+    runs-on: macos-13
     steps:
       - uses: actions/download-artifact@v4.1.7
         with:
