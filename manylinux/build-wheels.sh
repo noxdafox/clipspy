@@ -15,7 +15,7 @@ function repair_wheel {
 
 # Compile wheels
 for PYBIN in /opt/python/*/bin; do
-    if [[ ! $PYBIN =~ 313 ]]; then
+    if [[ ! $PYBIN =~ cp313t ]]; then
         "${PYBIN}/pip" install cffi pytest setuptools
         "${PYBIN}/pip" wheel /io/ --no-deps -w wheelhouse/
     fi
@@ -28,7 +28,7 @@ done
 
 # Install packages and test
 for PYBIN in /opt/python/*/bin; do
-    if [[ ! $PYBIN =~ 313 ]]; then
+    if [[ ! $PYBIN =~ cp313t ]]; then
         "${PYBIN}/pip" install clipspy --no-index -f /io/wheelhouse
         (cd "$HOME"; "${PYBIN}/pytest" -v /io/test)
     fi
