@@ -1,7 +1,7 @@
 # vim: tabstop=8
 PYTHON			?= python
-CLIPS_VERSION		?= 6.41
-CLIPS_SOURCE_URL	?= "https://sourceforge.net/projects/clipsrules/files/CLIPS/6.4.1/clips_core_source_641.zip"
+CLIPS_VERSION		?= 6.42
+CLIPS_SOURCE_URL	?= "https://sourceforge.net/projects/clipsrules/files/CLIPS/6.4.2/clips_core_source_642.zip"
 MAKEFILE_NAME		?= makefile
 SHARED_INCLUDE_DIR	?= /usr/local/include
 SHARED_LIBRARY_DIR	?= /usr/local/lib
