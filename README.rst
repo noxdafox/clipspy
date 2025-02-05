@@ -1,7 +1,7 @@
 CLIPS Python bindings
 =====================
 
-Python CFFI_ bindings for the 'C' Language Integrated Production System CLIPS_ 6.41.
+Python CFFI_ bindings for the 'C' Language Integrated Production System CLIPS_ 6.42.
 
 :Source: https://github.com/noxdafox/clipspy
 :Documentation: https://clipspy.readthedocs.io
@@ -34,10 +34,10 @@ Most of the distributions should be supported.
 
     $ pip install clipspy
 
-MacOsx
-++++++
+macOS
++++++
 
-Apple Silicon is supported for Python versions greater than 3.11.
+Apple Silicon is supported for Python versions greater than 3.10.
 
 .. code:: bash
 
