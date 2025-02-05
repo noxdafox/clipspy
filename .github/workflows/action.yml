@@ -166,10 +166,12 @@ jobs:
         with:
           pattern: macos-intel-build-*
           path: artifacts/
+          merge-multiple: true
       - uses: actions/download-artifact@v4
         with:
           pattern: macos-arm-build-*
           path: artifacts/
+          merge-multiple: true
       - name: Set up Python 3.12
         uses: actions/setup-python@v2
         with:
