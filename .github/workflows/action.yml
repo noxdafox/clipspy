@@ -199,3 +199,28 @@ jobs:
         with:
           name: macos-universal-build
           path: dist
+
+  build-distribution:
+    needs: [build-linux, build-windows, build-macos-universal]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-build
+          path: artifacts/
+          merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: macos-universal-build
+          path: artifacts/
+          merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: windows-build-*
+          path: artifacts/
+          merge-multiple: true
+      - name: Store build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: distribution-build
+          path: dist
