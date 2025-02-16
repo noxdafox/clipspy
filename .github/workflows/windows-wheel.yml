@@ -1,0 +1,51 @@
+name: Windows Wheel
+
+on: [push, pull_request]
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
+    steps:
+      - uses: actions/checkout@v2
+      # Install nmake
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Build CLIPSPy
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade build cffi wheel pytest setuptools
+          nmake /F Makefile.win
+      - name: Install CLIPSPy
+        run: |
+          pip install clipspy --no-index --find-links dist
+      - name: Run tests
+        run: |
+          # Run test from outside module to test installed package
+          cd ../
+          python -m pytest -v clipspy/test
+      - name: Store build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build-${{ matrix.python-version }}
+          path: dist
+
+  windows-build:
+    needs: [windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: windows-build-*
+          path: artifacts
+          merge-multiple: true
+      - name: Store build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: artifacts
