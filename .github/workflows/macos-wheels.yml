@@ -50,36 +50,36 @@ jobs:
           name: macos-build-${{ matrix.PYTHON }}-${{ matrix.PLATFORM.ARCHITECTURE }}
           path: dist
 
-  # macos-universal:
-  #   # Merge MACOS 'x86_64' and 'arm64' into 'universal2' for most recent versions of Python.
-  #   needs: [macos]
-  #   runs-on: macos-14
-  #   strategy:
-  #     matrix:
-  #       PYTHON: ['cp39-cp39', 'cp310-cp310', 'cp311-cp311', 'cp312-cp312', 'cp313-cp313']
-  #   steps:
-  #     - uses: actions/download-artifact@v4
-  #       with:
-  #         pattern: macos-build-*
-  #         path: artifacts/
-  #     - name: Set up Python 3.13
-  #       uses: actions/setup-python@v2
-  #       with:
-  #         python-version: 3.13
-  #     - name: Install rename utility
-  #       run: |
-  #         brew update --preinstall
-  #         brew install rename
-  #     - name: Install Python dependencies
-  #       run: |
-  #         python -m pip install --upgrade pip
-  #         pip install --upgrade wheel delocate setuptools
-  #     - name: Run delocate fuse onto the wheels
-  #       run: |
-  #         mkdir -p dist
-  #         delocate-merge artifacts/clipspy-*-${{ matrix.PYTHON }}-*_arm64.whl artifacts/clipspy-*-${{ matrix.PYTHON }}-*_x86_64.whl -w dist/
-  #     - name: Store build artifacts
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: macos-build
-  #         path: dist/
+  macos-universal:
+    # Merge MACOS 'x86_64' and 'arm64' into 'universal2' for most recent versions of Python.
+    needs: [macos]
+    runs-on: macos-14
+    strategy:
+      matrix:
+        PYTHON: ['cp39-cp39', 'cp310-cp310', 'cp311-cp311', 'cp312-cp312', 'cp313-cp313']
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: macos-build-*
+          path: artifacts/
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.13
+      - name: Install rename utility
+        run: |
+          brew update --preinstall
+          brew install rename
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade wheel delocate setuptools
+      - name: Run delocate fuse onto the wheels
+        run: |
+          mkdir -p dist
+          delocate-merge artifacts/clipspy-*-${{ matrix.PYTHON }}-*_arm64.whl artifacts/clipspy-*-${{ matrix.PYTHON }}-*_x86_64.whl -w dist/
+      - name: Store build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build-universal
+          path: dist/
