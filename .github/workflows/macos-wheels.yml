@@ -23,10 +23,10 @@ jobs:
     name: "${{ matrix.PYTHON }} - ${{ matrix.PLATFORM.NAME }}"
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.PYTHON }}
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ matrix.PYTHON }}
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
@@ -36,12 +36,6 @@ jobs:
           export PY_PLATFORM=$(python -c "import sysconfig; print('%s' % sysconfig.get_platform());")
           export _PYTHON_HOST_PLATFORM="${PY_PLATFORM/universal2/${{ matrix.PLATFORM.ARCHITECTURE }}}"
           sudo --preserve-env make clipspy
-      - name: Repair wheels
-        run: |
-          # This is a shortcut to have a successful delocate-wheel. Credits: @alexsavulescu
-          # See: https://github.com/matthew-brett/delocate/issues/153
-          python -c "import os,delocate; print(os.path.join(os.path.dirname(delocate.__file__), 'tools.py'));quit()"  | xargs -I{} sed -i."" "s/first, /input.pop('x86_64',None); first, /g" {}
-          sudo make repair -v dist/*.whl
       - name: Install CLIPSPy
         run: |
           pip install dist/*.whl
@@ -53,20 +47,39 @@ jobs:
       - name: Store build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: macos-build-${{ matrix.PYTHON }}
+          name: macos-build-${{ matrix.PYTHON }}-${{ matrix.PLATFORM.ARCHITECTURE }}
           path: dist
 
-  linux-build:
-    needs: [macos]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: macos-build-*
-          path: artifacts
-          merge-multiple: true
-      - name: Store build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-build
-          path: artifacts
+  # macos-universal:
+  #   # Merge MACOS 'x86_64' and 'arm64' into 'universal2' for most recent versions of Python.
+  #   needs: [macos]
+  #   runs-on: macos-14
+  #   strategy:
+  #     matrix:
+  #       PYTHON: ['cp39-cp39', 'cp310-cp310', 'cp311-cp311', 'cp312-cp312', 'cp313-cp313']
+  #   steps:
+  #     - uses: actions/download-artifact@v4
+  #       with:
+  #         pattern: macos-build-*
+  #         path: artifacts/
+  #     - name: Set up Python 3.13
+  #       uses: actions/setup-python@v2
+  #       with:
+  #         python-version: 3.13
+  #     - name: Install rename utility
+  #       run: |
+  #         brew update --preinstall
+  #         brew install rename
+  #     - name: Install Python dependencies
+  #       run: |
+  #         python -m pip install --upgrade pip
+  #         pip install --upgrade wheel delocate setuptools
+  #     - name: Run delocate fuse onto the wheels
+  #       run: |
+  #         mkdir -p dist
+  #         delocate-merge artifacts/clipspy-*-${{ matrix.PYTHON }}-*_arm64.whl artifacts/clipspy-*-${{ matrix.PYTHON }}-*_x86_64.whl -w dist/
+  #     - name: Store build artifacts
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: macos-build
+  #         path: dist/
