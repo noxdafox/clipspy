@@ -1,226 +1,299 @@
-name: CLIPSPy build job
+name: Linux Wheel
 
 on: [push, pull_request]
 
 jobs:
-  build-linux:
+  manylinux:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Build Manylinux Container
-        run: |
-          docker build -t clipspy-build-wheels:latest -f manylinux/Dockerfile .
-      - name: Build Manylinux packages
-        run: |
-          docker run --rm -v `pwd`/manylinux/wheelhouse:/io/wheelhouse clipspy-build-wheels:latest
-      - name: Store build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-build
-          path: manylinux/wheelhouse/*manylinux_2_17*manylinux2014*.whl
-
-  build-windows:
-    runs-on: windows-latest
+    container:
+      image: quay.io/pypa/${{ matrix.MANYLINUX.NAME }}
+      volumes:
+        - /manylinux/wheelhouse:/io/wheelhouse
     strategy:
       matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
-    steps:
-      - uses: actions/checkout@v2
-      # Install nmake
-      - uses: ilammy/msvc-dev-cmd@v1
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Build CLIPSPy
-        run: |
-          python -m pip install --upgrade pip
-          pip install --upgrade cffi wheel pytest setuptools
-          nmake /F Makefile.win
-      - name: Install CLIPSPy
-        run: |
-          pip install clipspy --no-index --find-links dist
-      - name: Run tests
-        run: |
-          # Run test from outside module to test installed package
-          cd ../
-          python -m pytest -v clipspy/test
-      - name: Store build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-build-${{ matrix.python-version }}
-          path: dist
-
-  build-macos-intel:
-    # On MACOS 13, user 'runner' is not part of wheel group.
-    # Hence, we need to use sudo everywhere.
-    # Moreover, installed Python is 'universal2', this leads to packages
-    # being mistakenly built as 'universal2' instead of 'x86_64'.
-    # This confuses the heck out of 'delocate-wheel' which we need to patch
-    # to make it work.
-    runs-on: macos-13
+        PYTHON:
+          - { VERSION: "cp39-cp39", BINARY: "/opt/python/cp39-cp39/bin" }
+          - { VERSION: "cp310-cp310", BINARY: "/opt/python/cp310-cp310/bin" }
+          - { VERSION: "cp311-cp311", BINARY: "/opt/python/cp311-cp311/bin" }
+          - { VERSION: "cp312-cp312", BINARY: "/opt/python/cp312-cp312/bin" }
+          - { VERSION: "cp313-cp313", BINARY: "/opt/python/cp313-cp313/bin" }
+        MANYLINUX:
+          - { NAME: "manylinux_2_28_x86_64", IMAGE: "quay.io/pypa/manylinux_2_28_x86_64" }
+          - { NAME: "musllinux_1_2_x86_64", IMAGE: "quay.io/pypa/musllinux_1_2_x86_64" }
+    name: "${{ matrix.PYTHON.VERSION }} - ${{ matrix.MANYLINUX.NAME }}"
     env:
-      ARCHFLAGS: "-arch x86_64"
-      MACOSX_DEPLOYMENT_TARGET: "11.0"
-    strategy:
-      matrix:
-        python-version: ['3.10', '3.11', '3.12', '3.13']
+      WHEEL_NAME: "clipspy-*-${{ matrix.PYTHON.VERSION }}*${{ matrix.MANYLINUX.NAME }}*.whl"
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install build dependencies (manylinux)
+        run: |
+          yum install -y make unzip wget libffi libffi-devel
+        if: startsWith(matrix.MANYLINUX.NAME, 'manylinux')
+      - name: Install build dependencies (muslinux)
+        run: |
+          yum install -y make unzip wget libffi libffi-devel
+        if: startsWith(matrix.MANYLINUX.NAME, 'muslinux')
       - name: Install Python dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install --upgrade cffi wheel delocate pytest setuptools
-      - name: Build and install CLIPS
+          ${{ matrix.PYTHON.BINARY }}/pip install --upgrade build pip cffi pytest setuptools auditwheel
+      - name: Build the wheel
         run: |
-          make clips
-          sudo make install-clips
-      - name: Build CLIPSPy
+          make build PYTHON=${{ matrix.PYTHON.BINARY }}/python
+      - name: Repair the wheel
         run: |
-          export PY_PLATFORM=$(python -c "import sysconfig; print('%s' % sysconfig.get_platform());")
-          export _PYTHON_HOST_PLATFORM="${PY_PLATFORM/universal2/x86_64}"
-          sudo --preserve-env make clipspy
-      - name: Repair wheels
+          make repair PYTHON=${{ matrix.PYTHON.BINARY }}/python WHEEL_PLATFORM=${{ matrix.MANYLINUX.NAME }}
+      - name: Copy the wheel
         run: |
-          # This is a shortcut to have a successful delocate-wheel. Credits: @alexsavulescu
-          # See: https://github.com/matthew-brett/delocate/issues/153
-          python -c "import os,delocate; print(os.path.join(os.path.dirname(delocate.__file__), 'tools.py'));quit()"  | xargs -I{} sed -i."" "s/first, /input.pop('x86_64',None); first, /g" {}
-          sudo delocate-wheel -v dist/*.whl
-      - name: Install CLIPSPy
+          mkdir -p wheels
+          cp dist/*.tar.gz dist/${{ env.WHEEL_NAME }} wheels
+      - name: Install the wheel
         run: |
-          pip install dist/*.whl
+          ${{ matrix.PYTHON.BINARY }}/pip install wheels/${{ env.WHEEL_NAME }}
       - name: Run tests
         run: |
           # Run test from outside module to test installed package
           cd ../
-          python -m pytest -v clipspy/test
+          ${{ matrix.PYTHON.BINARY }}/python -m pytest -v clipspy/test
       - name: Store build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: macos-intel-build-${{ matrix.python-version }}
-          path: dist
+          name: linux-build-${{ matrix.PYTHON.VERSION }}-${{ matrix.MANYLINUX.NAME }}
+          path: wheels
 
-  build-macos-arm:
-    # On MACOS 14, user 'runner' is not part of wheel group.
-    # Hence, we need to use sudo everywhere.
-    # Moreover, installed Python is 'universal2', this leads to packages
-    # being mistakenly built as 'universal2' instead of 'arm64'.
-    # This confuses the heck out of 'delocate-wheel' which we need to patch
-    # to make it work.
-    runs-on: macos-14
-    env:
-      ARCHFLAGS: "-arch arm64"
-      MACOSX_DEPLOYMENT_TARGET: "11.0"
-    strategy:
-      matrix:
-        python-version: ['3.10', '3.11', '3.12', '3.13']
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install --upgrade cffi wheel delocate pytest setuptools
-      - name: Build and install CLIPS
-        run: |
-          make clips
-          sudo make install-clips
-      - name: Build CLIPSPy
-        run: |
-          export PY_PLATFORM=$(python -c "import sysconfig; print('%s' % sysconfig.get_platform());")
-          export _PYTHON_HOST_PLATFORM="${PY_PLATFORM/universal2/arm64}"
-          sudo --preserve-env make clipspy
-      - name: Repair wheels
-        run: |
-          # This is a shortcut to have a successful delocate-wheel. Credits: @alexsavulescu
-          # See: https://github.com/matthew-brett/delocate/issues/153
-          python -c "import os,delocate; print(os.path.join(os.path.dirname(delocate.__file__), 'tools.py'));quit()"  | xargs -I{} sed -i."" "s/first, /input.pop('x86_64',None); first, /g" {}
-          sudo delocate-wheel -v dist/*.whl
-      - name: Install CLIPSPy
-        run: |
-          pip install dist/*.whl
-      - name: Run tests
-        run: |
-          # Run test from outside module to test installed package
-          cd ../
-          python -m pytest -v clipspy/test
-      - name: Store build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-arm-build-${{ matrix.python-version }}
-          path: dist
-
-  build-macos-universal:
-    # Merge MACOS 'x86_64' and 'arm64' into 'universal2' for most recent versions of Python.
-    needs: [build-macos-intel, build-macos-arm]
-    runs-on: macos-13
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: macos-intel-build-*
-          path: artifacts/
-          merge-multiple: true
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: macos-arm-build-*
-          path: artifacts/
-          merge-multiple: true
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.12
-      - name: Install rename utility
-        run: |
-          brew update
-          brew install rename
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install --upgrade wheel delocate setuptools
-      - name: Run delocate fuse onto the wheels
-        run: |
-          mkdir -p dist
-          ls -ahl artifacts
-          # Can't understand why globbing does not work in here
-          delocate-merge artifacts/clipspy-1.0.5-cp310-cp310-macosx_11_0_arm64.whl artifacts/clipspy-1.0.5-cp310-cp310-macosx_11_0_x86_64.whl -w dist/
-          delocate-merge artifacts/clipspy-1.0.5-cp311-cp311-macosx_11_0_arm64.whl artifacts/clipspy-1.0.5-cp311-cp311-macosx_11_0_x86_64.whl -w dist/
-          delocate-merge artifacts/clipspy-1.0.5-cp312-cp312-macosx_11_0_arm64.whl artifacts/clipspy-1.0.5-cp312-cp312-macosx_11_0_x86_64.whl -w dist/
-          delocate-merge artifacts/clipspy-1.0.5-cp313-cp313-macosx_11_0_arm64.whl artifacts/clipspy-1.0.5-cp313-cp313-macosx_11_0_x86_64.whl -w dist/
-          ls -ahl dist
-      - name: Store build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-universal-build
-          path: dist
-
-  build-distribution:
-    needs: [build-linux, build-windows, build-macos-universal]
+  linux-build:
+    needs: [manylinux]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: linux-build
-          path: artifacts/
-          merge-multiple: true
-      - uses: actions/download-artifact@v4
-        with:
-          name: macos-universal-build
-          path: artifacts/
-          merge-multiple: true
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: windows-build-*
-          path: artifacts/
+          pattern: linux-build-*
+          path: artifacts
           merge-multiple: true
       - name: Store build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: distribution-build
-          path: dist
+          name: linux-build
+          path: artifacts
+
+  # build-linux:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: Build Manylinux Container
+  #       run: |
+  #         docker build -t clipspy-build-wheels:latest -f manylinux/Dockerfile .
+  #     - name: Build Manylinux packages
+  #       run: |
+  #         docker run --rm -v `pwd`/manylinux/wheelhouse:/io/wheelhouse clipspy-build-wheels:latest
+  #     - name: Store build artifacts
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: linux-build
+  #         path: manylinux/wheelhouse/*manylinux_2_17*manylinux2014*.whl
+
+  # build-windows:
+  #   runs-on: windows-latest
+  #   strategy:
+  #     matrix:
+  #       python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     # Install nmake
+  #     - uses: ilammy/msvc-dev-cmd@v1
+  #     - name: Set up Python ${{ matrix.python-version }}
+  #       uses: actions/setup-python@v2
+  #       with:
+  #         python-version: ${{ matrix.python-version }}
+  #     - name: Build CLIPSPy
+  #       run: |
+  #         python -m pip install --upgrade pip
+  #         pip install --upgrade cffi wheel pytest setuptools
+  #         nmake /F Makefile.win
+  #     - name: Install CLIPSPy
+  #       run: |
+  #         pip install clipspy --no-index --find-links dist
+  #     - name: Run tests
+  #       run: |
+  #         # Run test from outside module to test installed package
+  #         cd ../
+  #         python -m pytest -v clipspy/test
+  #     - name: Store build artifacts
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: windows-build-${{ matrix.python-version }}
+  #         path: dist
+
+  # build-macos-intel:
+  #   # On MACOS 13, user 'runner' is not part of wheel group.
+  #   # Hence, we need to use sudo everywhere.
+  #   # Moreover, installed Python is 'universal2', this leads to packages
+  #   # being mistakenly built as 'universal2' instead of 'x86_64'.
+  #   # This confuses the heck out of 'delocate-wheel' which we need to patch
+  #   # to make it work.
+  #   runs-on: macos-13
+  #   env:
+  #     ARCHFLAGS: "-arch x86_64"
+  #     MACOSX_DEPLOYMENT_TARGET: "11.0"
+  #   strategy:
+  #     matrix:
+  #       python-version: ['3.10', '3.11', '3.12', '3.13']
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: Set up Python ${{ matrix.python-version }}
+  #       uses: actions/setup-python@v2
+  #       with:
+  #         python-version: ${{ matrix.python-version }}
+  #     - name: Install Python dependencies
+  #       run: |
+  #         python -m pip install --upgrade pip
+  #         pip install --upgrade cffi wheel delocate pytest setuptools
+  #     - name: Build and install CLIPS
+  #       run: |
+  #         make clips
+  #         sudo make install-clips
+  #     - name: Build CLIPSPy
+  #       run: |
+  #         export PY_PLATFORM=$(python -c "import sysconfig; print('%s' % sysconfig.get_platform());")
+  #         export _PYTHON_HOST_PLATFORM="${PY_PLATFORM/universal2/x86_64}"
+  #         sudo --preserve-env make clipspy
+  #     - name: Repair wheels
+  #       run: |
+  #         # This is a shortcut to have a successful delocate-wheel. Credits: @alexsavulescu
+  #         # See: https://github.com/matthew-brett/delocate/issues/153
+  #         python -c "import os,delocate; print(os.path.join(os.path.dirname(delocate.__file__), 'tools.py'));quit()"  | xargs -I{} sed -i."" "s/first, /input.pop('x86_64',None); first, /g" {}
+  #         sudo delocate-wheel -v dist/*.whl
+  #     - name: Install CLIPSPy
+  #       run: |
+  #         pip install dist/*.whl
+  #     - name: Run tests
+  #       run: |
+  #         # Run test from outside module to test installed package
+  #         cd ../
+  #         python -m pytest -v clipspy/test
+  #     - name: Store build artifacts
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: macos-intel-build-${{ matrix.python-version }}
+  #         path: dist
+
+  # build-macos-arm:
+  #   # On MACOS 14, user 'runner' is not part of wheel group.
+  #   # Hence, we need to use sudo everywhere.
+  #   # Moreover, installed Python is 'universal2', this leads to packages
+  #   # being mistakenly built as 'universal2' instead of 'arm64'.
+  #   # This confuses the heck out of 'delocate-wheel' which we need to patch
+  #   # to make it work.
+  #   runs-on: macos-14
+  #   env:
+  #     ARCHFLAGS: "-arch arm64"
+  #     MACOSX_DEPLOYMENT_TARGET: "11.0"
+  #   strategy:
+  #     matrix:
+  #       python-version: ['3.10', '3.11', '3.12', '3.13']
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: Set up Python ${{ matrix.python-version }}
+  #       uses: actions/setup-python@v2
+  #       with:
+  #         python-version: ${{ matrix.python-version }}
+  #     - name: Install Python dependencies
+  #       run: |
+  #         python -m pip install --upgrade pip
+  #         pip install --upgrade cffi wheel delocate pytest setuptools
+  #     - name: Build and install CLIPS
+  #       run: |
+  #         make clips
+  #         sudo make install-clips
+  #     - name: Build CLIPSPy
+  #       run: |
+  #         export PY_PLATFORM=$(python -c "import sysconfig; print('%s' % sysconfig.get_platform());")
+  #         export _PYTHON_HOST_PLATFORM="${PY_PLATFORM/universal2/arm64}"
+  #         sudo --preserve-env make clipspy
+  #     - name: Repair wheels
+  #       run: |
+  #         # This is a shortcut to have a successful delocate-wheel. Credits: @alexsavulescu
+  #         # See: https://github.com/matthew-brett/delocate/issues/153
+  #         python -c "import os,delocate; print(os.path.join(os.path.dirname(delocate.__file__), 'tools.py'));quit()"  | xargs -I{} sed -i."" "s/first, /input.pop('x86_64',None); first, /g" {}
+  #         sudo delocate-wheel -v dist/*.whl
+  #     - name: Install CLIPSPy
+  #       run: |
+  #         pip install dist/*.whl
+  #     - name: Run tests
+  #       run: |
+  #         # Run test from outside module to test installed package
+  #         cd ../
+  #         python -m pytest -v clipspy/test
+  #     - name: Store build artifacts
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: macos-arm-build-${{ matrix.python-version }}
+  #         path: dist
+
+  # build-macos-universal:
+  #   # Merge MACOS 'x86_64' and 'arm64' into 'universal2' for most recent versions of Python.
+  #   needs: [build-macos-intel, build-macos-arm]
+  #   runs-on: macos-13
+  #   steps:
+  #     - uses: actions/download-artifact@v4
+  #       with:
+  #         pattern: macos-intel-build-*
+  #         path: artifacts/
+  #         merge-multiple: true
+  #     - uses: actions/download-artifact@v4
+  #       with:
+  #         pattern: macos-arm-build-*
+  #         path: artifacts/
+  #         merge-multiple: true
+  #     - name: Set up Python 3.12
+  #       uses: actions/setup-python@v2
+  #       with:
+  #         python-version: 3.12
+  #     - name: Install rename utility
+  #       run: |
+  #         brew update
+  #         brew install rename
+  #     - name: Install Python dependencies
+  #       run: |
+  #         python -m pip install --upgrade pip
+  #         pip install --upgrade wheel delocate setuptools
+  #     - name: Run delocate fuse onto the wheels
+  #       run: |
+  #         mkdir -p dist
+  #         ls -ahl artifacts
+  #         # Can't understand why globbing does not work in here
+  #         delocate-merge artifacts/clipspy-1.0.5-cp310-cp310-macosx_11_0_arm64.whl artifacts/clipspy-1.0.5-cp310-cp310-macosx_11_0_x86_64.whl -w dist/
+  #         delocate-merge artifacts/clipspy-1.0.5-cp311-cp311-macosx_11_0_arm64.whl artifacts/clipspy-1.0.5-cp311-cp311-macosx_11_0_x86_64.whl -w dist/
+  #         delocate-merge artifacts/clipspy-1.0.5-cp312-cp312-macosx_11_0_arm64.whl artifacts/clipspy-1.0.5-cp312-cp312-macosx_11_0_x86_64.whl -w dist/
+  #         delocate-merge artifacts/clipspy-1.0.5-cp313-cp313-macosx_11_0_arm64.whl artifacts/clipspy-1.0.5-cp313-cp313-macosx_11_0_x86_64.whl -w dist/
+  #         ls -ahl dist
+  #     - name: Store build artifacts
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: macos-universal-build
+  #         path: dist
+
+  # build-distribution:
+  #   needs: [build-linux, build-windows, build-macos-universal]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/download-artifact@v4
+  #       with:
+  #         name: linux-build
+  #         path: artifacts/
+  #         merge-multiple: true
+  #     - uses: actions/download-artifact@v4
+  #       with:
+  #         name: macos-universal-build
+  #         path: artifacts/
+  #         merge-multiple: true
+  #     - uses: actions/download-artifact@v4
+  #       with:
+  #         pattern: windows-build-*
+  #         path: artifacts/
+  #         merge-multiple: true
+  #     - name: Store build artifacts
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: distribution-build
+  #         path: dist
