@@ -55,7 +55,7 @@ repair: build
 		auditwheel repair $(DIST_DIR)/*.whl				\
 			--plat $(WHEEL_PLATFORM)				\
 			--wheel-dir $(DIST_DIR);				\
-	fi									\
+	fi
 endif
 
 clipspy: build repair
