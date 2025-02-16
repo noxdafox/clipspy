@@ -1,0 +1,72 @@
+name: Linux Wheel
+
+on: [push, pull_request]
+
+jobs:
+  macos:
+    # On MACOS 13+, user 'runner' is not part of wheel group.
+    # Hence, we need to use sudo everywhere.
+    # Moreover, installed Python is 'universal2', this leads to packages
+    # being mistakenly built as 'universal2' instead of 'x86_64'/'arm64'.
+    # This confuses the heck out of 'delocate-wheel' which we need to patch
+    # to make it work.
+    runs-on: ${{ matrix.PLATFORM.RUNNER }}
+    strategy:
+      matrix:
+        PYTHON: ['3.9', '3.10', '3.11', '3.12', '3.13']
+        PLATFORM:
+          - { NAME: "Intel", ARCHITECTURE: "x86_64", RUNNER: "macos-13" }
+          - { NAME: "Silicon", ARCHITECTURE: "arm64", RUNNER: "macos-14" }
+    env:
+      ARCHFLAGS: "-arch ${{ matrix.PLATFORM.ARCHITECTURE }}"
+      MACOSX_DEPLOYMENT_TARGET: "11.0"
+    name: "${{ matrix.PYTHON }} - ${{ matrix.PLATFORM.NAME }}"
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade cffi wheel delocate pytest setuptools build
+      - name: Build CLIPSPy
+        run: |
+          export PY_PLATFORM=$(python -c "import sysconfig; print('%s' % sysconfig.get_platform());")
+          export _PYTHON_HOST_PLATFORM="${PY_PLATFORM/universal2/${{ matrix.PLATFORM.ARCHITECTURE }}}"
+          sudo --preserve-env make clipspy
+      - name: Repair wheels
+        run: |
+          # This is a shortcut to have a successful delocate-wheel. Credits: @alexsavulescu
+          # See: https://github.com/matthew-brett/delocate/issues/153
+          python -c "import os,delocate; print(os.path.join(os.path.dirname(delocate.__file__), 'tools.py'));quit()"  | xargs -I{} sed -i."" "s/first, /input.pop('x86_64',None); first, /g" {}
+          sudo make repair -v dist/*.whl
+      - name: Install CLIPSPy
+        run: |
+          pip install dist/*.whl
+      - name: Run tests
+        run: |
+          # Run test from outside module to test installed package
+          cd ../
+          python -m pytest -v clipspy/test
+      - name: Store build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build-${{ matrix.PYTHON }}
+          path: dist
+
+  linux-build:
+    needs: [macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: macos-build-*
+          path: artifacts
+          merge-multiple: true
+      - name: Store build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build
+          path: artifacts
