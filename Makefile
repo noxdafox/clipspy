@@ -44,6 +44,10 @@ build: clips
 	$(PYTHON) -m build --sdist --wheel --outdir $(DIST_DIR)
 
 repair: export LD_LIBRARY_PATH := $LD_LIBRARY_PATH:$(LIBS_DIR)
+ifeq ($(PLATFORM),Darwin) # macOS
+repair: build
+	delocate-wheel -v dist/*.whl
+else
 repair: build
 	if ! auditwheel show $(DIST_DIR)/*.whl; then				\
 		echo "Skipping non-platform wheel $$wheel";			\
@@ -52,6 +56,7 @@ repair: build
 			--plat $(WHEEL_PLATFORM)				\
 			--wheel-dir $(DIST_DIR);				\
 	fi									\
+endif
 
 clipspy: build repair
 
