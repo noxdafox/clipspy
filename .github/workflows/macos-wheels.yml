@@ -1,4 +1,4 @@
-name: Linux Wheel
+name: MACos Wheel
 
 on: [push, pull_request]
 
