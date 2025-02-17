@@ -9,8 +9,8 @@ Python CFFI_ bindings for the 'C' Language Integrated Production System CLIPS_ 6
 
 |build badge| |docs badge|
 
-.. |build badge| image:: https://github.com/noxdafox/clipspy/actions/workflows/action.yml/badge.svg
-   :target: https://github.com/noxdafox/clipspy/actions/workflows/action.yml
+.. |build badge| image:: https://github.com/noxdafox/clipspy/actions/workflows/linux-wheels.yml/badge.svg
+   :target: https://github.com/noxdafox/clipspy/actions/workflows/linux-wheels.yml
    :alt: Build Status
 .. |docs badge| image:: https://readthedocs.org/projects/clipspy/badge/?version=latest
    :target: http://clipspy.readthedocs.io/en/latest/?badge=latest
@@ -27,8 +27,7 @@ Installation
 Linux
 +++++
 
-On Linux CLIPSPy is packaged for `x86_64` architecture as a wheel according to PEP-513_ guidelines.
-Most of the distributions should be supported.
+On Linux CLIPSPy is packaged for `x86_64` and `aarch64` architectures as a wheel according to PEP-513_ guidelines. PEP-656_ is supported solely for `x86_64` at the moment. Minimum Python version is 3.9.
 
 .. code:: bash
 
@@ -37,7 +36,7 @@ Most of the distributions should be supported.
 macOS
 +++++
 
-Apple Silicon is supported for Python versions greater than 3.10.
+Apple Intel and Silicon are supported for Python versions starting from 3.9.
 
 .. code:: bash
 
@@ -46,7 +45,7 @@ Apple Silicon is supported for Python versions greater than 3.10.
 Windows
 +++++++
 
-CLIPSPy comes as a wheel for most of the Python versions and architectures.
+CLIPSPy comes as a wheel for Python versions starting from 3.9.
 
 .. code:: batch
 
@@ -109,4 +108,5 @@ Example
 .. _CLIPS: http://www.clipsrules.net/
 .. _CFFI: https://cffi.readthedocs.io/en/latest/index.html
 .. _PEP-513: https://www.python.org/dev/peps/pep-0513/
+.. _PEP-656: https://peps.python.org/pep-0656/
 .. _documentation: https://clipspy.readthedocs.io
