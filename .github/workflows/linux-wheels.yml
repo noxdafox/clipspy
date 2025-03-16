@@ -7,8 +7,6 @@ jobs:
     runs-on: ${{ matrix.MANYLINUX.RUNNER }}
     container:
       image: quay.io/pypa/${{ matrix.MANYLINUX.NAME }}
-      volumes:
-        - /manylinux/wheelhouse:/io/wheelhouse
     strategy:
       matrix:
         PYTHON:
@@ -19,26 +17,18 @@ jobs:
           - { VERSION: "cp313-cp313", BINARY: "/opt/python/cp313-cp313/bin" }
         MANYLINUX:
           # x86_64
-          - { NAME: "manylinux_2_28_x86_64", IMAGE: "quay.io/pypa/manylinux_2_28_x86_64", RUNNER: "ubuntu-latest" }
-          - { NAME: "musllinux_1_2_x86_64", IMAGE: "quay.io/pypa/musllinux_1_2_x86_64", RUNNER: "ubuntu-latest" }
+          - { NAME: "manylinux_2_28_x86_64", RUNNER: "ubuntu-latest" }
+          - { NAME: "musllinux_1_2_x86_64", RUNNER: "ubuntu-latest" }
           # arm64
-          - { NAME: "manylinux_2_28_aarch64", IMAGE: "quay.io/pypa/manylinux_2_28_aarch64", RUNNER: "ubuntu-24.04-arm" }
+          - { NAME: "manylinux_2_28_aarch64", RUNNER: "ubuntu-24.04-arm" }
           # GitHub actions are not yet supported on Alpine arm64
-          # - { NAME: "musllinux_1_2_aarch64", IMAGE: "quay.io/pypa/musllinux_1_2_aarch64", RUNNER: "ubuntu-24.04-arm" }
+          # - { NAME: "musllinux_1_2_aarch64", RUNNER: "ubuntu-24.04-arm" }
     name: "${{ matrix.PYTHON.VERSION }} - ${{ matrix.MANYLINUX.NAME }}"
     env:
       WHEEL_NAME: "clipspy-*-${{ matrix.PYTHON.VERSION }}*${{ matrix.MANYLINUX.NAME }}*.whl"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Install build dependencies (manylinux)
-        run: |
-          yum install -y make unzip wget libffi libffi-devel
-        if: startsWith(matrix.MANYLINUX.NAME, 'manylinux')
-      - name: Install build dependencies (muslinux)
-        run: |
-          yum install -y make unzip wget libffi libffi-devel
-        if: startsWith(matrix.MANYLINUX.NAME, 'muslinux')
       - name: Install Python dependencies
         run: |
           ${{ matrix.PYTHON.BINARY }}/pip install --upgrade build pip cffi pytest setuptools auditwheel
