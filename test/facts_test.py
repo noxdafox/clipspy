@@ -89,7 +89,10 @@ class TestFacts(unittest.TestCase):
         self.assertEqual(dict(fact), expected)
         self.assertEqual(str(fact), TMPL_STR)
         self.assertEqual(repr(fact), TMPL_RPR)
+        self.assertTrue(fact in tuple(template.facts()))
         self.assertTrue(fact in tuple(self.env.facts()))
+        self.assertEqual(str(tuple(template.facts())[0]), TMPL_STR)
+        self.assertEqual(str(tuple(self.env.facts())[0]), TMPL_STR)
 
     def test_template_fact_errors(self):
         """TemplateFacts errors."""
