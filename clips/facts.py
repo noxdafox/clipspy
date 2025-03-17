@@ -280,7 +280,7 @@ class Template:
         """Iterate over the asserted Facts belonging to this Template."""
         fact = lib.GetNextFactInTemplate(self._ptr(), ffi.NULL)
         while fact != ffi.NULL:
-            yield new_fact(self._ptr(), fact)
+            yield new_fact(self._env, fact)
 
             fact = lib.GetNextFactInTemplate(self._ptr(), fact)
 
