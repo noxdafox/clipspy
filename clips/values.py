@@ -102,7 +102,7 @@ def clips_external_address(env: ffi.CData, value: type) -> ffi.CData:
 
     # Hold reference to CData handle
     user_functions = common.environment_data(env, 'user_functions')
-    user_functions.external_addresses[value] = handle
+    user_functions.external_addresses[handle] = (handle, value)
 
     return lib.CreateCExternalAddress(env, handle)
 
@@ -113,7 +113,7 @@ def python_external_address(env: ffi.CData, value: ffi.CData) -> type:
 
     # Remove reference to CData handle
     user_functions = common.environment_data(env, 'user_functions')
-    del user_functions.external_addresses[obj]
+    del user_functions.external_addresses[value.externalAddressValue.contents]
 
     return obj
 

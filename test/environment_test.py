@@ -136,6 +136,16 @@ class TestEnvironment(unittest.TestCase):
 
         self.assertEqual(ret, test_object)
 
+    def test_call_python_unhashable(self):
+        """Unhashable objects are correctly marshalled."""
+        from collections.abc import Hashable
+        test_dict = {'test': 'passed'}
+        self.assertNotIsInstance(test_dict, Hashable)
+
+        ret = self.env.call('python_objects', test_dict)
+
+        self.assertEqual(ret, test_dict)
+
     def test_rule_python_fact(self):
         """Facts are forwarded to Python """
         fact = self.env.assert_string('(test-fact)')
