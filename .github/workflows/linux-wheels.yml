@@ -22,7 +22,7 @@ jobs:
           # arm64
           - { NAME: "manylinux_2_28_aarch64", RUNNER: "ubuntu-24.04-arm" }
           # GitHub actions are not yet supported on Alpine arm64
-          # - { NAME: "musllinux_1_2_aarch64", RUNNER: "ubuntu-24.04-arm" }
+          - { NAME: "musllinux_1_2_aarch64", RUNNER: "ubuntu-24.04-arm" }
     name: "${{ matrix.PYTHON.VERSION }} - ${{ matrix.MANYLINUX.NAME }}"
     env:
       WHEEL_NAME: "clipspy-*-${{ matrix.PYTHON.VERSION }}*${{ matrix.MANYLINUX.NAME }}*.whl"
