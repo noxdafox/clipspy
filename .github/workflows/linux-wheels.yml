@@ -15,6 +15,7 @@ jobs:
           - { VERSION: "cp311-cp311", BINARY: "/opt/python/cp311-cp311/bin" }
           - { VERSION: "cp312-cp312", BINARY: "/opt/python/cp312-cp312/bin" }
           - { VERSION: "cp313-cp313", BINARY: "/opt/python/cp313-cp313/bin" }
+          - { VERSION: "cp314-cp314", BINARY: "/opt/python/cp314-cp314/bin" }
         MANYLINUX:
           # x86_64
           - { NAME: "manylinux_2_28_x86_64", RUNNER: "ubuntu-latest" }
