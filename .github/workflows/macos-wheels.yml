@@ -13,7 +13,7 @@ jobs:
     runs-on: ${{ matrix.PLATFORM.RUNNER }}
     strategy:
       matrix:
-        PYTHON: ['3.9', '3.10', '3.11', '3.12', '3.13']
+        PYTHON: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
         PLATFORM:
           - { NAME: "Intel", ARCHITECTURE: "x86_64", RUNNER: "macos-13" }
           - { NAME: "Silicon", ARCHITECTURE: "arm64", RUNNER: "macos-14" }
@@ -56,7 +56,7 @@ jobs:
     runs-on: macos-14
     strategy:
       matrix:
-        PYTHON: ['cp39-cp39', 'cp310-cp310', 'cp311-cp311', 'cp312-cp312', 'cp313-cp313']
+        PYTHON: ['cp39-cp39', 'cp310-cp310', 'cp311-cp311', 'cp312-cp312', 'cp313-cp313', 'cp314-cp314']
     steps:
       - uses: actions/download-artifact@v4
         with:
